@@ -75,7 +75,7 @@ function loadData() {
     if (migrated) saveData(data);
     return data;
   } catch (error) {
-    console.error("Could not load e wallet data:", error);
+    console.error("Could not load e-wise data:", error);
     showToast("Couldn’t load your saved data. Check browser storage and refresh.");
     return { currency: "KES", theme: "light", sample: false, transactions: [], goals: [], investments: [], recurringTransactions: [], reminderLog: {}, plans: [] };
   }
@@ -88,13 +88,15 @@ function pageFromHash() {
 let activePage = pageFromHash();
 let compactChartLayout = window.matchMedia("(max-width: 1000px)").matches;
 let transactionFilter = "all";
+let cashflowView = "monthly";
+let pendingTransactionImage = "";
 let toastTimer;
 const AUTH_SESSION_KEY = "e-wallet-session";
 const LOGIN_USERNAME = "Erick";
 const LOGIN_PASSWORD = "4695";
 function saveData(next = data) {
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(next)); }
-  catch (error) { console.error("Could not save e wallet data:", error); showToast("Couldn’t save changes. Your browser storage may be full or disabled."); }
+  catch (error) { console.error("Could not save e-wise data:", error); showToast("Couldn’t save changes. Your browser storage may be full or disabled."); }
 }
 function money(amount, compact = false) {
   const currency = data.currency || "USD";
@@ -154,7 +156,7 @@ function setupLogin() {
   try {
     if (sessionStorage.getItem(AUTH_SESSION_KEY) === "unlocked") setAuthenticated(true);
   } catch (error) {
-    console.error("Could not read the e wallet sign-in session:", error);
+    console.error("Could not read the e-wise sign-in session:", error);
     errorMessage.textContent = "The browser session could not be checked. Please enable session storage and refresh.";
   }
   form.addEventListener("submit", event => {
@@ -168,7 +170,7 @@ function setupLogin() {
     try {
       sessionStorage.setItem(AUTH_SESSION_KEY, "unlocked");
     } catch (error) {
-      console.error("Could not save the e wallet sign-in session:", error);
+      console.error("Could not save the e-wise sign-in session:", error);
       errorMessage.textContent = "The browser couldn’t start a sign-in session. Please enable session storage and try again.";
       return;
     }
@@ -179,7 +181,7 @@ function setupLogin() {
   });
   logoutButton.addEventListener("click", () => {
     try { sessionStorage.removeItem(AUTH_SESSION_KEY); }
-    catch (error) { console.error("Could not clear the e wallet sign-in session:", error); }
+    catch (error) { console.error("Could not clear the e-wise sign-in session:", error); }
     setProfileMenuOpen(false);
     setAuthenticated(false);
     password.value = "";
@@ -272,6 +274,7 @@ function render() {
     : renderSettings();
   root.querySelectorAll("[data-delete]").forEach(el => el.addEventListener("click", () => deleteItem(el.dataset.delete, el.dataset.id)));
   root.querySelectorAll("[data-filter]").forEach(el => el.addEventListener("change", () => { transactionFilter = el.value; render(); }));
+  root.querySelectorAll("[data-chart-view]").forEach(el => el.addEventListener("change", () => { cashflowView = el.value; render(); }));
   root.querySelectorAll("[data-export]").forEach(el => el.addEventListener("click", exportTransactions));
   checkRecurringReminders();
 }
@@ -312,9 +315,10 @@ function renderCashflow() {
   const month = totals(monthTransactions());
   const week = totals(data.transactions.filter(t => withinDays(t.date, 7)));
   const net = month.income - month.expense;
+  const viewLabel = cashflowView === "weekly" ? "Weekly" : cashflowView === "quarterly" ? "Quarterly" : "Monthly";
   return `${heading("THE BIGGER PICTURE", "Money in motion.", "See how your income and spending have moved over the last six months.")}
     <section class="cashflow-hero"><div class="cashflow-hero-copy"><span>THIS MONTH</span><h2>${net >= 0 ? "You’re in the green." : "Spending is running ahead."}</h2><p>Net flow <strong>${money(net)}</strong></p></div><div class="cashflow-totals"><div><span>Money in</span><strong>${money(month.income)}</strong><small>${money(week.income)} in the last 7 days</small></div><div><span>Money out</span><strong>${money(month.expense)}</strong><small>${money(week.expense)} in the last 7 days</small></div></div></section>
-    <section class="panel cashflow-page-chart"><div class="panel-header"><div><h2 class="panel-title">Six-month view</h2><p class="panel-caption">Monthly income compared with spending</p></div><div class="chart-legend"><span class="legend-item"><i class="legend-dot"></i>Income</span><span class="legend-item"><i class="legend-dot orange"></i>Spending</span></div></div>${cashflowChart()}</section>`;
+    <section class="panel cashflow-page-chart"><div class="panel-header"><div><h2 class="panel-title">${viewLabel} view</h2><p class="panel-caption">Income compared with spending</p></div><div class="chart-controls"><select class="select" data-chart-view aria-label="Chart time view"><option value="weekly" ${cashflowView==="weekly"?"selected":""}>Weekly</option><option value="monthly" ${cashflowView==="monthly"?"selected":""}>Monthly</option><option value="quarterly" ${cashflowView==="quarterly"?"selected":""}>Quarterly</option></select><div class="chart-legend"><span class="legend-item"><i class="legend-dot"></i>Income</span><span class="legend-item"><i class="legend-dot orange"></i>Spending</span></div></div></div>${cashflowChart()}</section>`;
 }
 function renderSpending() {
   const expenses = monthTransactions().filter(t => t.type === "expense").slice().sort((a,b) => b.date.localeCompare(a.date));
@@ -326,22 +330,44 @@ function renderSpending() {
     <section class="spending-page-grid"><div class="panel spending-category-panel"><div class="panel-header"><div><h2 class="panel-title">By category</h2><p class="panel-caption">Where this month’s spending is going</p></div></div>${spendingBreakdown()}</div><div class="panel spending-activity-panel"><div class="panel-header"><div><h2 class="panel-title">Recent expenses</h2><p class="panel-caption">${expenses.length} this month</p></div><button class="text-link" data-action="open-transactions">All activity</button></div>${transactionTable(expenses)}</div></section>`;
 }
 function cashflowChart() {
-  const months = [];
-  for (let i = 5; i >= 0; i--) {
-    const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - i);
-    months.push({ date: d, values: totals(monthTransactions(d)) });
+  const periods = [];
+  if (cashflowView === "weekly") {
+    for (let i = 7; i >= 0; i--) {
+      const end = new Date(today); end.setDate(end.getDate() - i * 7);
+      const start = new Date(end); start.setDate(start.getDate() - 6);
+      const values = totals(data.transactions.filter(t => {
+        const d = new Date(`${t.date}T00:00:00`);
+        return d >= start && d <= end;
+      }));
+      periods.push({ label: start.toLocaleDateString(undefined, { month: "short", day: "numeric" }), values });
+    }
+  } else if (cashflowView === "quarterly") {
+    for (let i = 5; i >= 0; i--) {
+      const quarter = Math.floor(today.getMonth() / 3);
+      const d = new Date(today.getFullYear(), quarter * 3 - i * 3, 1);
+      const values = totals(data.transactions.filter(t => {
+        const tx = new Date(`${t.date}T00:00:00`);
+        return tx >= d && tx < new Date(d.getFullYear(), d.getMonth() + 3, 1);
+      }));
+      periods.push({ label: `Q${Math.floor(d.getMonth()/3)+1}`, values });
+    }
+  } else {
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - i);
+      periods.push({ label: d.toLocaleDateString(undefined,{month:"short"}), values: totals(monthTransactions(d)) });
+    }
   }
-  const max = Math.max(100, ...months.flatMap(m => [m.values.income, m.values.expense])) * 1.18;
+  const max = Math.max(100, ...periods.flatMap(m => [m.values.income, m.values.expense])) * 1.18;
   const compact = compactChartLayout;
   const chartWidth = compact ? 360 : 900;
-  const x = i => compact ? 54 + i * 49 : 55 + i * 160, y = value => 155 - (value / max) * 125;
-  const line = key => months.map((m, i) => `${i ? "L" : "M"}${x(i)} ${y(m.values[key])}`).join(" ");
-  const area = key => `${line(key)} L${x(5)} 158 L${x(0)} 158 Z`;
+  const x = i => compact ? 54 + i * (286 / (periods.length - 1)) : 55 + i * (825 / (periods.length - 1)), y = value => 155 - (value / max) * 125;
+  const line = key => periods.map((m, i) => `${i ? "L" : "M"}${x(i)} ${y(m.values[key])}`).join(" ");
+  const area = key => `${line(key)} L${x(periods.length-1)} 158 L${x(0)} 158 Z`;
   const gridEnd = compact ? 340 : 880;
-  return `<svg class="cashflow-chart" viewBox="0 0 ${chartWidth} 190" preserveAspectRatio="none" role="img" aria-label="Income and spending chart for the last six months"><defs><linearGradient id="incomeGradient" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#4d86c8" stop-opacity=".14"/><stop offset="1" stop-color="#4d86c8" stop-opacity="0"/></linearGradient><linearGradient id="expenseGradient" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#ee9b7d" stop-opacity=".13"/><stop offset="1" stop-color="#ee9b7d" stop-opacity="0"/></linearGradient></defs>
+  return `<svg class="cashflow-chart" viewBox="0 0 ${chartWidth} 190" preserveAspectRatio="none" role="img" aria-label="Income and spending chart"><defs><linearGradient id="incomeGradient" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#4d86c8" stop-opacity=".14"/><stop offset="1" stop-color="#4d86c8" stop-opacity="0"/></linearGradient><linearGradient id="expenseGradient" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#ee9b7d" stop-opacity=".13"/><stop offset="1" stop-color="#ee9b7d" stop-opacity="0"/></linearGradient></defs>
     ${[30,72,114,156].map(v=>`<line class="gridline" x1="45" y1="${v}" x2="${gridEnd}" y2="${v}"/>`).join("")}
     <path class="income-fill" d="${area("income")}"/><path class="expense-fill" d="${area("expense")}"/><path class="income-line" d="${line("income")}"/><path class="expense-line" d="${line("expense")}"/>
-    ${months.map((m,i)=>`<circle class="point blue" cx="${x(i)}" cy="${y(m.values.income)}" r="3.2"/><circle class="point orange" cx="${x(i)}" cy="${y(m.values.expense)}" r="3.2"/><text x="${x(i)}" y="178" text-anchor="middle">${m.date.toLocaleDateString(undefined,{month:"short"})}</text>`).join("")}
+    ${periods.map((m,i)=>`<circle class="point blue" cx="${x(i)}" cy="${y(m.values.income)}" r="3.2"/><circle class="point orange" cx="${x(i)}" cy="${y(m.values.expense)}" r="3.2"/><text x="${x(i)}" y="178" text-anchor="middle">${escapeHtml(m.label)}</text>`).join("")}
     <text x="0" y="34">${money(max, true)}</text><text x="0" y="76">${money(max*.66, true)}</text><text x="0" y="118">${money(max*.33, true)}</text></svg>`;
 }
 function spendingBreakdown() {
@@ -365,7 +391,7 @@ function goalMini(g) {
 }
 function transactionTable(items) {
   if (!items.length) return `<div class="empty-state"><strong>No transactions yet.</strong>When you add one, it’ll show up here.</div>`;
-  return `<div class="table-wrap"><table><thead><tr><th>TRANSACTION</th><th>CATEGORY</th><th>DATE</th><th>TYPE</th><th style="text-align:right">AMOUNT</th></tr></thead><tbody>${items.map(t=>`<tr><td><div class="transaction-name"><span class="transaction-symbol ${t.type}">${t.type==="income"?"↙":"↗"}</span>${escapeHtml(t.name)}</div></td><td>${escapeHtml(t.category)}</td><td>${fmtDate(t.date)}</td><td><span class="type-pill ${t.type}">${t.type==="income"?"Income":"Expense"}</span></td><td class="amount ${t.type}">${t.type==="income"?"+":"−"}${money(t.amount)}</td></tr>`).join("")}</tbody></table></div>`;
+  return `<div class="table-wrap"><table><thead><tr><th>TRANSACTION</th><th>CATEGORY</th><th>DATE</th><th>TYPE</th><th style="text-align:right">AMOUNT</th></tr></thead><tbody>${items.map(t=>`<tr><td><div class="transaction-name"><span class="transaction-symbol ${t.type}">${t.type==="income"?"↙":"↗"}</span>${escapeHtml(t.name)}${t.image?`<img class="transaction-image-thumb" src="${t.image}" alt="Uploaded transaction image">`:""}</div></td><td>${escapeHtml(t.category)}</td><td>${fmtDate(t.date)}</td><td><span class="type-pill ${t.type}">${t.type==="income"?"Income":"Expense"}</span></td><td class="amount ${t.type}">${t.type==="income"?"+":"−"}${money(t.amount)}</td></tr>`).join("")}</tbody></table></div>`;
 }
 function renderTransactions() {
   const items = data.transactions.filter(t=>transactionFilter==="all"||t.type===transactionFilter).slice().sort((a,b)=>b.date.localeCompare(a.date));
@@ -377,6 +403,10 @@ function renderTransactions() {
     <section class="ledger-hero">
       <div class="ledger-lead"><span class="ledger-overline">${monthLabel.toUpperCase()} · MONEY IN MOTION</span><p>Your month so far</p><h2>${money(net)} <small>net flow</small></h2><div class="ledger-note">${net >= 0 ? "You’re bringing in more than you’re spending." : "Your spending is ahead of income this month."}</div></div>
       <div class="ledger-snapshot"><div class="ledger-snapshot-row income"><span><i>↙</i>Money in</span><strong>${money(month.income)}</strong></div><div class="ledger-snapshot-row expense"><span><i>↗</i>Money out</span><strong>${money(month.expense)}</strong></div><div class="ledger-week-note"><span>Last 7 days</span><span>${money(week.income)} in <b>·</b> ${money(week.expense)} out</span></div></div>
+    </section>
+    <section class="panel receipt-upload-panel">
+      <div class="receipt-upload-copy"><span class="receipt-upload-icon" aria-hidden="true">▣</span><div><h2 class="panel-title">Upload a transaction image</h2><p class="panel-caption">We’ll read the image and prepare the transaction details for review.</p></div></div>
+      <button class="button secondary" type="button" data-action="upload-transaction">Upload image</button>
     </section>
     <section class="panel wide-panel ledger-panel"><div class="panel-header"><div><h2 class="panel-title">Your ledger</h2><p class="panel-caption">${items.length} ${items.length===1?"entry":"entries"} ${transactionFilter==="all"?"recorded":`shown as ${transactionFilter}`}</p></div><div class="list-toolbar"><select class="select" data-filter aria-label="Filter transactions"><option value="all" ${transactionFilter==="all"?"selected":""}>All activity</option><option value="income" ${transactionFilter==="income"?"selected":""}>Income only</option><option value="expense" ${transactionFilter==="expense"?"selected":""}>Expenses only</option></select><button class="button secondary" data-export>↓ Export CSV</button></div></div>${transactionTable(items)}</section>`;
 }
@@ -401,7 +431,7 @@ function renderRecurring() {
   const browserAlerts = permission === "granted" ? "Browser alerts are enabled." : permission === "denied" ? "Browser alerts are blocked in this browser’s site settings." : permission === "unsupported" ? "Browser alerts aren’t available here; in-app reminders still work." : "Allow optional browser alerts for due reminders.";
   return `${heading("STAY A STEP AHEAD", "Your monthly rhythm.", "Keep regular bills and income in view. We’ll remind you when they’re due.", actionButton("Add monthly item", "recurring", true))}
     <section class="cards-grid">${metric("Monthly expenses",money(monthlyExpenses),"From your active monthly items","down")}${metric("Monthly income",money(monthlyIncome),"From your active monthly items","up")}${metric("Monthly items",items.length,`${active.length} active reminder${active.length === 1 ? "" : "s"}`,"calendar")}${metric("Recorded this month",items.filter(item => item.lastRecordedMonth === month).length,"From your monthly list","wallet")}</section>
-    <section class="panel wide-panel"><div class="panel-header"><div><h2 class="panel-title">Monthly transactions</h2><p class="panel-caption">Reminders are checked while e wallet is open. Recording one adds it to Transactions.</p></div><button class="button secondary" data-action="enable-notifications">${permission === "granted" ? "Browser alerts enabled" : "Enable browser alerts"}</button></div><p class="notification-note">${browserAlerts} Browser alerts require permission and a secure site such as GitHub Pages.</p><div class="recurring-grid">${cards || `<div class="empty-state"><strong>Nothing on repeat yet.</strong>Add your regular monthly bills or income to receive due reminders.</div>`}</div></section>`;
+    <section class="panel wide-panel"><div class="panel-header"><div><h2 class="panel-title">Monthly transactions</h2><p class="panel-caption">Reminders are checked while e-wise is open. Recording one adds it to Transactions.</p></div><button class="button secondary" data-action="enable-notifications">${permission === "granted" ? "Browser alerts enabled" : "Enable browser alerts"}</button></div><p class="notification-note">${browserAlerts} Browser alerts require permission and a secure site such as GitHub Pages.</p><div class="recurring-grid">${cards || `<div class="empty-state"><strong>Nothing on repeat yet.</strong>Add your regular monthly bills or income to receive due reminders.</div>`}</div></section>`;
 }
 function renderSavings() {
   const goals = data.goals.map(g=>{
@@ -442,15 +472,16 @@ function renderSettings() {
   const currencies = [["USD","US Dollar"],["EUR","Euro"],["GBP","British Pound"],["CAD","Canadian Dollar"],["AUD","Australian Dollar"],["INR","Indian Rupee"],["JPY","Japanese Yen"],["NGN","Nigerian Naira"],["KES","Kenyan Shilling"],["GHS","Ghanaian Cedi"]];
   const currencyOptions = currencies.map(([code,label])=>`<option value="${code}" ${data.currency===code?"selected":""}>${code} · ${label}</option>`).join("");
   return `${heading("MAKE IT YOURS", "A few things to know.", "Your data belongs to you. Here’s how this little app works.")}
-    <div class="settings-grid"><section class="panel"><h2 class="panel-title">Preferences</h2><div class="settings-row"><div><strong>Display currency</strong><span>Used to format amounts throughout the app</span></div><select id="currencySelect" class="select setting-control" aria-label="Display currency">${currencyOptions}</select></div><div class="settings-row"><div><strong>Appearance</strong><span>Choose a comfortable theme for your screen</span></div><button class="button secondary" data-action="toggle-theme">Use ${data.theme === "dark" ? "light" : "dark"} theme</button></div><div class="settings-row"><div><strong>Monthly reminders</strong><span>In-app reminders work while e wallet is open. Browser alerts also need permission and a secure site.</span></div><button class="button secondary" data-action="enable-notifications">Enable browser alerts</button></div><div class="settings-row"><div><strong>Where your data lives</strong><span>Your entries are stored in this browser on this device only.</span></div><span class="privacy-dot"></span></div><div class="settings-row"><div><strong>Take your data with you</strong><span>Download a copy of your transactions as a CSV file.</span></div><button class="button secondary" data-export>↓ Export CSV</button></div>
+    <div class="settings-grid"><section class="panel"><h2 class="panel-title">Preferences</h2><div class="settings-row"><div><strong>Display currency</strong><span>Used to format amounts throughout the app</span></div><select id="currencySelect" class="select setting-control" aria-label="Display currency">${currencyOptions}</select></div><div class="settings-row"><div><strong>Appearance</strong><span>Choose a comfortable theme for your screen</span></div><button class="button secondary" data-action="toggle-theme">Use ${data.theme === "dark" ? "light" : "dark"} theme</button></div><div class="settings-row"><div><strong>Monthly reminders</strong><span>In-app reminders work while e-wise is open. Browser alerts also need permission and a secure site.</span></div><button class="button secondary" data-action="enable-notifications">Enable browser alerts</button></div><div class="settings-row"><div><strong>Where your data lives</strong><span>Your entries are stored in this browser on this device only.</span></div><span class="privacy-dot"></span></div><div class="settings-row"><div><strong>Take your data with you</strong><span>Download a copy of your transactions as a CSV file.</span></div><button class="button secondary" data-export>↓ Export CSV</button></div>
     <div class="danger-zone"><h3>Start fresh</h3><p>This removes all transactions, monthly items, savings goals, investments, and purchase plans saved in this browser.</p><button class="button secondary" data-action="reset-data">Start fresh</button></div></section>
-    <section class="panel"><h2 class="panel-title">A little about e wallet</h2><p class="subheading" style="line-height:1.9;margin-top:12px">A calm place to see where your money goes, celebrate what you save, and plan for the things you’re looking forward to.</p><div class="settings-row"><div><strong>Private by design</strong><span>There’s no account, server, or tracking. Your data stays in your browser’s local storage.</span></div></div><div class="settings-row"><div><strong>Keep a backup</strong><span>Browser data can be cleared when you reset your device. Export your transactions regularly to keep a copy.</span></div></div></section></div>`;
+    <section class="panel"><h2 class="panel-title">A little about e-wise</h2><p class="subheading" style="line-height:1.9;margin-top:12px">A calm place to see where your money goes, celebrate what you save, and plan for the things you’re looking forward to.</p><div class="settings-row"><div><strong>Private by design</strong><span>There’s no account, server, or tracking. Your data stays in your browser’s local storage.</span></div></div><div class="settings-row"><div><strong>Keep a backup</strong><span>Browser data can be cleared when you reset your device. Export your transactions regularly to keep a copy.</span></div></div></section></div>`;
 }
 function handleAction(action, id) {
   if (action === "open-transactions") return setPage("transactions");
   if (action === "open-savings") return setPage("savings");
   if (action === "open-settings") return setPage("settings");
   if (action === "transaction") return openModal("transaction");
+  if (action === "upload-transaction") return openModal("transaction");
   if (action === "recurring") return openModal("recurring");
   if (action === "goal") return openModal("goal");
   if (action === "investment") return openModal("investment");
@@ -461,7 +492,7 @@ function handleAction(action, id) {
   if (action === "record-recurring") return recordRecurring(id);
   if (action === "enable-notifications") return enableBrowserNotifications();
   if (action === "toggle-theme") return toggleTheme();
-  if (action === "reset-data") { if (confirm("Permanently remove all e wallet data saved in this browser? This can’t be undone.")) { data = { currency: data.currency, theme: data.theme, sample: false, transactions: [], goals: [], investments: [], recurringTransactions: [], reminderLog: {}, plans: [], goalContributions: [] }; saveData(); render(); showToast("Your local data has been cleared."); } return; }
+  if (action === "reset-data") { if (confirm("Permanently remove all e-wise data saved in this browser? This can’t be undone.")) { data = { currency: data.currency, theme: data.theme, sample: false, transactions: [], goals: [], investments: [], recurringTransactions: [], reminderLog: {}, plans: [], goalContributions: [] }; saveData(); render(); showToast("Your local data has been cleared."); } return; }
   if (action === "currency") { const select = document.getElementById("currencySelect"); if (select) { data.currency = select.value; saveData(); render(); showToast("Currency preference saved."); } }
 }
 document.getElementById("appContent").addEventListener("click", e => {
@@ -475,8 +506,9 @@ document.getElementById("appContent").addEventListener("click", e => {
   if (button) handleAction(button.dataset.action, button.dataset.id);
 });
 function openModal(kind, id) {
+  if (kind === "transaction") pendingTransactionImage = "";
   const templates = {
-    transaction: { title: "Add a transaction", subtitle: "A little bit of tracking goes a long way.", fields: `<div class="field full"><label for="entry-name">What was it?</label><input id="entry-name" name="name" required maxlength="60" placeholder="e.g. Weekly groceries"></div><div class="field"><label for="entry-type">Type</label><select id="entry-type" name="type"><option value="expense">Expense</option><option value="income">Income</option></select></div><div class="field"><label for="entry-amount">Amount</label><input id="entry-amount" name="amount" type="number" min="0.01" step="0.01" required placeholder="0.00"></div><div class="field"><label for="entry-category">Category</label><select id="entry-category" name="category"><option>Food & dining</option><option>Home</option><option>Transport</option><option>Shopping</option><option>Health</option><option>Subscriptions</option><option>Entertainment</option><option>Salary</option><option>Other income</option><option>Other</option></select></div><div class="field"><label for="entry-date">Date</label><input id="entry-date" name="date" type="date" value="${iso(today)}" required></div>` },
+    transaction: { title: "Add a transaction", subtitle: "Add it manually or upload an image for automatic details.", fields: `<div class="field full"><label for="transaction-image">Transaction image</label><input id="transaction-image" name="image" type="file" accept="image/*" capture="environment"><div id="transaction-image-status" class="image-status">Choose a receipt or transaction screenshot.</div><img id="transaction-image-preview" class="transaction-image-preview" alt="Transaction preview" hidden></div><div class="field full"><label for="entry-name">What was it?</label><input id="entry-name" name="name" required maxlength="60" placeholder="e.g. Weekly groceries"></div><div class="field"><label for="entry-type">Type</label><select id="entry-type" name="type"><option value="expense">Expense</option><option value="income">Income</option></select></div><div class="field"><label for="entry-amount">Amount</label><input id="entry-amount" name="amount" type="number" min="0.01" step="0.01" required placeholder="0.00"></div><div class="field"><label for="entry-category">Category</label><select id="entry-category" name="category"><option>Food & dining</option><option>Home</option><option>Transport</option><option>Shopping</option><option>Health</option><option>Subscriptions</option><option>Entertainment</option><option>Salary</option><option>Other income</option><option>Other</option></select></div><div class="field"><label for="entry-date">Date</label><input id="entry-date" name="date" type="date" value="${iso(today)}" required></div>` },
     recurring: { title: "Add a monthly item", subtitle: "Set a reminder for a bill or income you expect every month.", fields: `<div class="field full"><label for="recurring-name">What happens each month?</label><input id="recurring-name" name="name" required maxlength="60" placeholder="e.g. Internet bill"></div><div class="field"><label for="recurring-type">Type</label><select id="recurring-type" name="type"><option value="expense">Expense</option><option value="income">Income</option></select></div><div class="field"><label for="recurring-amount">Amount</label><input id="recurring-amount" name="amount" type="number" min="0.01" step="0.01" required placeholder="0.00"></div><div class="field"><label for="recurring-category">Category</label><select id="recurring-category" name="category"><option>Home</option><option>Utilities</option><option>Subscriptions</option><option>Transport</option><option>Food & dining</option><option>Salary</option><option>Other income</option><option>Other</option></select></div><div class="field"><label for="recurring-day">Due day of month</label><input id="recurring-day" name="dayOfMonth" type="number" min="1" max="31" step="1" required value="1"></div><div class="field full"><label for="recurring-reminder">Remind me</label><select id="recurring-reminder" name="remindDaysBefore"><option value="0">On the due day</option><option value="1" selected>1 day before</option><option value="3">3 days before</option><option value="7">7 days before</option></select></div>` },
     goal: { title: "Create a savings goal", subtitle: "Give your future plans a place to grow.", fields: `<div class="field full"><label for="goal-name">What are you saving for?</label><input id="goal-name" name="name" required maxlength="50" placeholder="e.g. Emergency fund"></div><div class="field"><label for="goal-target">Target amount</label><input id="goal-target" name="target" type="number" min="0.01" step="0.01" required placeholder="0.00"></div><div class="field"><label for="goal-saved">Already saved</label><input id="goal-saved" name="saved" type="number" min="0" step="0.01" value="0"></div><div class="field"><label for="goal-date">Target date</label><input id="goal-date" name="due" type="date" value="${addMonths(6)}" required></div><div class="field"><label for="goal-icon">Little symbol</label><select id="goal-icon" name="icon"><option value="✳">✳ A fresh start</option><option value="✈">✈ A trip</option><option value="⌂">⌂ A home</option><option value="☂">☂ A safety net</option><option value="♫">♫ Something fun</option><option value="⌘">⌘ A new gadget</option></select></div>` },
     investment: { title: "Add an investment", subtitle: "Keep your portfolio in one simple view.", fields: `<div class="field full"><label for="investment-name">Investment name</label><input id="investment-name" name="name" required maxlength="50" placeholder="e.g. Global index fund"></div><div class="field"><label for="investment-type">Type</label><select id="investment-type" name="type"><option>ETF</option><option>Stocks</option><option>Bonds</option><option>Crypto</option><option>Other</option></select></div><div class="field"><label for="investment-date">Date added</label><input id="investment-date" name="date" type="date" value="${iso(today)}" required></div><div class="field"><label for="investment-invested">Amount invested</label><input id="investment-invested" name="invested" type="number" min="0.01" step="0.01" required placeholder="0.00"></div><div class="field"><label for="investment-value">Current value</label><input id="investment-value" name="value" type="number" min="0" step="0.01" required placeholder="0.00"></div>` },
@@ -489,6 +521,8 @@ function openModal(kind, id) {
   document.getElementById("modalRoot").innerHTML = `<div class="modal-backdrop" data-close-modal><section class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title"><div class="modal-header"><div><h2 id="modal-title">${template.title}</h2><p>${template.subtitle}</p></div><button type="button" class="close-button" aria-label="Close dialog" data-close-modal>×</button></div><form id="entryForm"><div class="form-grid">${template.fields}</div><div class="modal-actions"><button type="button" class="button secondary" data-close-modal>Cancel</button><button type="submit" class="button">Save ${kind.startsWith("contribute")?"contribution":"details"}</button></div></form></section></div>`;
   document.getElementById("modalRoot").querySelectorAll("[data-close-modal]").forEach(el => el.addEventListener("click", e => { if (e.target === el || el.tagName === "BUTTON") closeModal(); }));
   document.getElementById("entryForm").addEventListener("submit", e => { e.preventDefault(); submitForm(kind, new FormData(e.target)); });
+  const imageInput = document.getElementById("transaction-image");
+  if (imageInput) imageInput.addEventListener("change", event => handleTransactionImage(event.target.files[0]));
   const first = document.querySelector("#entryForm input:not([type=hidden])");
   if (first) first.focus();
 }
@@ -498,7 +532,7 @@ function submitForm(kind, form) {
   const amount = Number(v.amount || v.target);
   if (v.name !== undefined && !v.name.trim()) { showToast("Please add a name before saving."); return; }
   if (!Number.isFinite(amount) || amount <= 0) { showToast("Please enter an amount greater than zero."); return; }
-  if (kind === "transaction") data.transactions.push({ id: uid(), name: v.name.trim(), type: v.type, amount, date: v.date, category: v.category, note: "" });
+  if (kind === "transaction") data.transactions.push({ id: uid(), name: v.name.trim(), type: v.type, amount, date: v.date, category: v.category, note: "", image: pendingTransactionImage || "" });
   if (kind === "recurring") {
     const dayOfMonth = Number(v.dayOfMonth);
     if (!Number.isInteger(dayOfMonth) || dayOfMonth < 1 || dayOfMonth > 31) { showToast("Choose a due day between 1 and 31."); return; }
@@ -596,6 +630,100 @@ async function enableBrowserNotifications() {
     console.error("Could not request browser notification permission:", error);
     showToast("Couldn’t request browser alerts. In-app reminders still work.");
   }
+}
+async function handleTransactionImage(file) {
+  if (!file) return;
+  const status = document.getElementById("transaction-image-status");
+  const preview = document.getElementById("transaction-image-preview");
+  if (!file.type.startsWith("image/")) { if (status) status.textContent = "Please choose an image file."; return; }
+  if (status) status.textContent = "Preparing image…";
+  try {
+    const imageData = await compressTransactionImage(file);
+    pendingTransactionImage = imageData;
+    if (preview) { preview.src = imageData; preview.hidden = false; }
+    if (status) status.textContent = "Reading transaction details…";
+    const text = await recognizeTransactionText(imageData);
+    applyExtractedTransaction(text, file.name);
+    if (status) status.textContent = text ? "Details extracted. Review and save." : "Image added. Add or review the details below.";
+  } catch (error) {
+    console.error("Could not process transaction image:", error);
+    if (status) status.textContent = "Image added, but automatic reading was unavailable.";
+  }
+}
+function compressTransactionImage(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(reader.error);
+    reader.onload = () => {
+      const image = new Image();
+      image.onerror = () => reject(new Error("The selected image could not be read."));
+      image.onload = () => {
+        const scale = Math.min(1, 1200 / Math.max(image.naturalWidth, image.naturalHeight));
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
+        canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
+        canvas.getContext("2d").drawImage(image, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL("image/jpeg", .78));
+      };
+      image.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+async function loadTransactionOCR() {
+  if (window.Tesseract) return window.Tesseract;
+  await new Promise((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = "https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js";
+    script.onload = resolve;
+    script.onerror = () => reject(new Error("OCR library could not be loaded."));
+    document.head.appendChild(script);
+  });
+  return window.Tesseract;
+}
+async function recognizeTransactionText(imageData) {
+  try {
+    const OCR = await loadTransactionOCR();
+    const result = await OCR.recognize(imageData, "eng");
+    return result?.data?.text || "";
+  } catch (error) {
+    console.error("Could not read text from transaction image:", error);
+    return "";
+  }
+}
+function applyExtractedTransaction(text, fileName) {
+  const lines = text.split(/\r?\n/).map(line => line.trim()).filter(Boolean);
+  const amountMatch = lines
+    .flatMap(line => (line.match(/(?:KES|Ksh|[$€£₹])?\s?\d[\d,]*(?:\.\d{1,2})?/gi) || [])
+      .map(value => ({ value, line }))
+    )
+    .map(match => ({ ...match, number: Number(match.value.replace(/[^\d.]/g, "")) }))
+    .filter(match => Number.isFinite(match.number) && match.number > 0)
+    .sort((a, b) => (/(total|amount|due|balance)/i.test(b.line) - /(total|amount|due|balance)/i.test(a.line)) || b.number - a.number)[0];
+  const amountInput = document.getElementById("entry-amount");
+  if (amountInput && amountMatch) amountInput.value = amountMatch.number.toFixed(2);
+
+  let date = "";
+  const dateMatch = text.match(/\b(\d{4}[-/.]\d{1,2}[-/.]\d{1,2}|\d{1,2}[-/.]\d{1,2}[-/.]\d{2,4})\b/);
+  if (dateMatch) {
+    const parts = dateMatch[1].replace(/[/.]/g, "-").split("-");
+    if (parts[0].length === 4) date = `${parts[0]}-${parts[1].padStart(2,"0")}-${parts[2].padStart(2,"0")}`;
+    else {
+      let year = parts[2].length === 2 ? `20${parts[2]}` : parts[2];
+      date = `${year}-${parts[1].padStart(2,"0")}-${parts[0].padStart(2,"0")}`;
+    }
+  }
+  const dateInput = document.getElementById("entry-date");
+  if (dateInput && date && !Number.isNaN(new Date(`${date}T00:00:00`).getTime())) dateInput.value = date;
+
+  const nameInput = document.getElementById("entry-name");
+  if (nameInput) {
+    const firstUseful = lines.find(line => line.length >= 3 && !/\b(receipt|invoice|transaction|date|total)\b/i.test(line) && !/^\d[\d\s,.-]*$/.test(line));
+    const fromFile = fileName.replace(/\.[^.]+$/, "").replace(/[_-]+/g, " ").trim();
+    nameInput.value = (firstUseful || fromFile || "Uploaded transaction").slice(0, 60);
+  }
+  const typeInput = document.getElementById("entry-type");
+  if (typeInput && /\b(refund|received|deposit|salary|income|credit)\b/i.test(text)) typeInput.value = "income";
 }
 function escapeHtml(value) { return String(value ?? "").replace(/[&<>"']/g, ch => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[ch])); }
 function exportTransactions() {

@@ -1,4 +1,4 @@
-# e wallet
+# e-wise
 
 A private, local-first money management app for tracking everyday income and spending, savings goals, investments, and future purchases.
 
@@ -24,7 +24,7 @@ Open `index.html` in a modern browser. No build step, account, or server is requ
 
 Entries are stored in this browser’s local storage on this device; they are not sent to a server. The first visit includes sample data so you can explore the app. Choose **Start fresh** in Settings to begin with an empty wallet. Export transactions periodically if you want a separate backup.
 
-Monthly reminders run while e wallet is open. Optional browser notifications require permission and a secure site such as GitHub Pages; they do not run while the site is closed.
+Monthly reminders run while e-wise is open. Optional browser notifications require permission and a secure site such as GitHub Pages; they do not run while the site is closed.
 
 Sign in with username **Erick** and password **4695**. This is only a local convenience screen lock: the password is in the app source and does not protect data from someone who can access the browser, developer tools, or app files. The sign-in session lasts for the current browser tab. Personal Airtel Money notifications cannot be fetched by this static app.
 
