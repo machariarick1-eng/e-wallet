@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#f7f8fa">
+    <meta name="description" content="A thoughtful, private space to manage your money, savings, investments, and goals.">
+    <title>e wallet — your money, in balance</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <div class="loading-screen" id="loadingScreen" role="status" aria-live="polite">
+      <div class="loading-brand">
+        <span class="brand-mark"><span></span><span></span><span></span></span>
+        <span>e <strong>wallet</strong></span>
+      </div>
+      <div class="loading-track"><span></span></div>
+      <p>Getting your money in balance</p>
+    </div>
+    <main class="login-screen" id="loginScreen">
+      <section class="login-card">
+        <div class="brand login-brand" aria-label="e wallet">
+          <span class="brand-mark"><span></span><span></span><span></span></span>
+          <span>e <strong>wallet</strong></span>
+        </div>
+        <div class="login-profile">
+          <img class="login-photo" src="erick-profile.jpeg" alt="Erick’s profile photo">
+          <span class="profile-presence" aria-hidden="true"></span>
+        </div>
+        <div class="login-eyebrow">YOUR MONEY, IN BALANCE</div>
+        <h1>Welcome back, Erick.</h1>
+        <p class="login-intro">Pick up where you left off. Your money space is right here.</p>
+        <form id="loginForm" class="login-form">
+          <label for="loginUsername">Username</label>
+          <input id="loginUsername" name="username" type="text" value="Erick" autocomplete="username" required>
+          <label for="loginPassword">Password</label>
+          <input id="loginPassword" name="password" type="password" inputmode="numeric" pattern="[0-9]{4}" minlength="4" maxlength="4" autocomplete="current-password" placeholder="Enter your 4-digit password" required>
+          <p id="loginError" class="login-error" role="alert" aria-live="polite"></p>
+          <button class="button login-submit" type="submit">Open my wallet <span aria-hidden="true">→</span></button>
+        </form>
+        <p class="login-disclaimer">This local sign-in is a convenience lock, not secure account authentication. Anyone with access to this browser or the app files may access your data.</p>
+      </section>
+      <aside class="login-aside">
+        <div class="login-aside-orb orb-one"></div>
+        <div class="login-aside-orb orb-two"></div>
+        <div class="login-aside-content">
+          <span class="login-aside-label">A LITTLE MORE CLARITY</span>
+          <h2>Money feels better when you can see the whole picture.</h2>
+          <p>Today’s choices. Tomorrow’s plans. All in one thoughtful place.</p>
+          <div class="login-aside-footer"><span>✳</span> A calmer way to keep track.</div>
+        </div>
+      </aside>
+    </main>
+    <div class="app-shell">
+      <aside class="sidebar" id="sidebar">
+        <a class="brand" href="#" data-page="overview" aria-label="e wallet home">
+          <span class="brand-mark"><span></span><span></span><span></span></span>
+          <span>e <strong>wallet</strong></span>
+        </a>
+        <button class="sidebar-close" id="sidebarClose" type="button" aria-label="Close navigation">×</button>
+        <div class="side-label">YOUR SPACE</div>
+        <nav class="main-nav" aria-label="Main navigation">
+          <button class="nav-item active" data-page="overview"><span class="nav-icon" data-icon="grid"></span>Overview</button>
+          <button class="nav-item" data-page="transactions"><span class="nav-icon" data-icon="arrows"></span>Transactions</button>
+          <button class="nav-item" data-page="cashflow"><span class="nav-icon" data-icon="chart"></span>Cash flow</button>
+          <button class="nav-item" data-page="spending"><span class="nav-icon" data-icon="down"></span>Spending</button>
+          <button class="nav-item" data-page="recurring"><span class="nav-icon" data-icon="calendar"></span>Monthly items</button>
+          <button class="nav-item" data-page="savings"><span class="nav-icon" data-icon="target"></span>Savings goals</button>
+          <button class="nav-item" data-page="investments"><span class="nav-icon" data-icon="chart"></span>Investments</button>
+          <button class="nav-item" data-page="planner"><span class="nav-icon" data-icon="bag"></span>Purchase planner</button>
+          <button class="nav-item settings-link" data-page="settings"><span class="nav-icon" data-icon="settings"></span>Settings</button>
+        </nav>
+        <div class="sidebar-spacer"></div>
+        <div class="side-note">
+          <div class="note-spark">✳</div>
+          <p>Small steps add up.</p>
+          <span>You’re doing better than you think.</span>
+        </div>
+        <div class="sidebar-footer"><span class="privacy-dot"></span>Private on this device</div>
+      </aside>
+      <button class="sidebar-backdrop" id="sidebarBackdrop" type="button" aria-label="Dismiss navigation overlay" tabindex="-1"></button>
+
+      <main class="main-area">
+        <header class="topbar">
+          <button class="mobile-menu" id="mobileMenu" aria-label="Open navigation" aria-expanded="false" aria-controls="sidebar"><span></span><span></span></button>
+          <div class="breadcrumb"><strong id="currentSection">Overview</strong></div>
+          <div class="topbar-right">
+            <button class="theme-toggle" id="themeToggle" type="button" aria-label="Switch to dark theme" title="Switch to dark theme"><span id="themeIcon" aria-hidden="true">☾</span></button>
+            <span class="today-label" id="todayLabel"></span>
+            <div class="profile-control">
+              <button class="avatar" id="profileMenuToggle" type="button" aria-label="Erick’s profile options" aria-haspopup="menu" aria-expanded="false" aria-controls="profileMenu" title="Profile options">
+                <img src="erick-profile.jpeg" alt="">
+              </button>
+              <div class="profile-menu" id="profileMenu" role="menu" aria-label="Profile options" hidden>
+                <div class="profile-menu-heading">
+                  <img src="erick-profile.jpeg" alt="">
+                  <span><strong>Erick</strong><small>Personal wallet</small></span>
+                </div>
+                <button class="profile-menu-item" type="button" role="menuitem" data-page="settings">Settings</button>
+                <button class="profile-menu-item sign-out-item" type="button" role="menuitem" id="logoutButton">Log out</button>
+              </div>
+            </div>
+          </div>
+        </header>
+        <div id="appContent" class="page-content"></div>
+      </main>
+    </div>
+    <div id="modalRoot"></div>
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    <script src="app.js"></script>
+  </body>
+</html>
