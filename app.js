@@ -86,6 +86,7 @@ function pageFromHash() {
   return names[page] ? page : "overview";
 }
 let activePage = pageFromHash();
+let compactChartLayout = window.matchMedia("(max-width: 1000px)").matches;
 let transactionFilter = "all";
 let toastTimer;
 const AUTH_SESSION_KEY = "e-wallet-session";
@@ -218,6 +219,12 @@ function setPage(page, updateUrl = true) {
 }
 document.querySelectorAll("[data-page]").forEach(el => el.addEventListener("click", e => { e.preventDefault(); setPage(el.dataset.page); }));
 window.addEventListener("popstate", () => setPage(pageFromHash(), false));
+window.addEventListener("resize", () => {
+  const compact = window.matchMedia("(max-width: 1000px)").matches;
+  if (compact === compactChartLayout) return;
+  compactChartLayout = compact;
+  if (activePage === "cashflow") render();
+});
 function setSidebarOpen(open) {
   document.getElementById("sidebar").classList.toggle("open", open);
   document.getElementById("mobileMenu").setAttribute("aria-expanded", String(open));
@@ -273,6 +280,10 @@ function renderOverview() {
   const week = data.transactions.filter(t => (today - new Date(`${t.date}T00:00:00`)) / 86400000 < 7 && (today - new Date(`${t.date}T00:00:00`)) / 86400000 >= 0);
   const weeklyTotals = totals(week);
   const investGain = investmentsValue() - data.investments.reduce((s, h) => s + Number(h.invested), 0);
+  const savingsTarget = data.goals.reduce((sum, goal) => sum + Number(goal.target), 0);
+  const savingsProgress = savingsTarget ? Math.min(100, savingsTotal() / savingsTarget * 100) : 0;
+  const planTarget = data.plans.reduce((sum, plan) => sum + Number(plan.target), 0);
+  const planSaved = data.plans.reduce((sum, plan) => sum + Number(plan.saved), 0);
   return `${heading("YOUR MONEY, AT A GLANCE", "Good things are growing, Erick.", "Here’s how your money is moving this month.", actionButton("Add transaction", "transaction"))}
     <section class="cards-grid">
       ${metric("Net cash flow", money(totalBalance()), "Income less spending recorded", "wallet", "cashflow")}
@@ -280,9 +291,21 @@ function renderOverview() {
       ${metric("Spending this month", money(mt.expense), `<span class="negative">↘</span> ${money(weeklyTotals.expense)} in the last 7 days`, "down", "spending")}
       ${metric("Savings & investments", money(savingsTotal() + investmentsValue()), `<span class="positive">↗</span> ${money(investGain)} investment growth`, "target", "savings")}
     </section>
-    <section class="overview-shortcuts" aria-label="Explore your money">
-      <a class="overview-shortcut cashflow-shortcut" href="#cashflow" data-page="cashflow"><span class="shortcut-icon">${icons.chart}</span><span><small>SEE THE BIG PICTURE</small><strong>Cash flow</strong><em>Income and spending over six months</em></span><b aria-hidden="true">↗</b></a>
-      <a class="overview-shortcut spending-shortcut" href="#spending" data-page="spending"><span class="shortcut-icon">${icons.down}</span><span><small>KNOW WHERE IT GOES</small><strong>Spending</strong><em>Explore your monthly categories</em></span><b aria-hidden="true">↗</b></a>
+    <section class="overview-feature-section" aria-label="Explore your money">
+      <div class="overview-feature-heading"><div><div class="eyebrow">YOUR NEXT STEPS</div><h2>Make room for what matters.</h2></div><div class="overview-slider-controls"><button type="button" data-feature-slider="prev" aria-label="Previous featured item">←</button><button type="button" data-feature-slider="next" aria-label="Next featured item">→</button></div></div>
+      <div class="overview-feature-slider" role="region" aria-label="Savings, investments, and purchase planner" aria-roledescription="carousel">
+        <div class="overview-feature-track">
+          <a class="overview-feature-card savings-feature" href="#savings" data-page="savings" aria-roledescription="slide" aria-label="1 of 3: Savings plan">
+            <span class="overview-feature-icon" aria-hidden="true">${icons.target}</span><span class="overview-feature-copy"><small>BUILD TOWARD WHAT MATTERS</small><strong>Savings plan</strong><em>${data.goals.length} ${data.goals.length === 1 ? "goal" : "goals"} · ${Math.round(savingsProgress)}% of targets</em><b>${money(savingsTotal())}<span> saved</span></b><span class="overview-feature-progress"><i style="width:${savingsProgress}%"></i></span></span><span class="overview-feature-arrow" aria-hidden="true">↗</span>
+          </a>
+          <a class="overview-feature-card investments-feature" href="#investments" data-page="investments" aria-roledescription="slide" aria-label="2 of 3: Investments">
+            <span class="overview-feature-icon" aria-hidden="true">${icons.chart}</span><span class="overview-feature-copy"><small>GROW AT YOUR OWN PACE</small><strong>Investments</strong><em>${data.investments.length} ${data.investments.length === 1 ? "holding" : "holdings"} · ${investGain >= 0 ? "Growth" : "Change"} ${money(Math.abs(investGain))}</em><b>${money(investmentsValue())}<span> current value</span></b><span class="overview-feature-caption">See your portfolio at a glance</span></span><span class="overview-feature-arrow" aria-hidden="true">↗</span>
+          </a>
+          <a class="overview-feature-card planner-feature" href="#planner" data-page="planner" aria-roledescription="slide" aria-label="3 of 3: Purchase planner">
+            <span class="overview-feature-icon" aria-hidden="true">${icons.bag}</span><span class="overview-feature-copy"><small>PLAN THE GOOD STUFF</small><strong>Purchase planner</strong><em>${data.plans.length} ${data.plans.length === 1 ? "plan" : "plans"} in progress</em><b>${money(planSaved)}<span> of ${money(planTarget)} saved</span></b><span class="overview-feature-caption">Turn the things you want into doable goals</span></span><span class="overview-feature-arrow" aria-hidden="true">↗</span>
+          </a>
+        </div>
+      </div>
     </section>`;
 }
 function renderCashflow() {
@@ -309,11 +332,14 @@ function cashflowChart() {
     months.push({ date: d, values: totals(monthTransactions(d)) });
   }
   const max = Math.max(100, ...months.flatMap(m => [m.values.income, m.values.expense])) * 1.18;
-  const x = i => 47 + i * 75, y = value => 155 - (value / max) * 125;
+  const compact = compactChartLayout;
+  const chartWidth = compact ? 360 : 900;
+  const x = i => compact ? 54 + i * 49 : 55 + i * 160, y = value => 155 - (value / max) * 125;
   const line = key => months.map((m, i) => `${i ? "L" : "M"}${x(i)} ${y(m.values[key])}`).join(" ");
   const area = key => `${line(key)} L${x(5)} 158 L${x(0)} 158 Z`;
-  return `<svg class="cashflow-chart" viewBox="0 0 500 190" preserveAspectRatio="none" role="img" aria-label="Income and spending chart for the last six months"><defs><linearGradient id="incomeGradient" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#4d86c8" stop-opacity=".14"/><stop offset="1" stop-color="#4d86c8" stop-opacity="0"/></linearGradient><linearGradient id="expenseGradient" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#ee9b7d" stop-opacity=".13"/><stop offset="1" stop-color="#ee9b7d" stop-opacity="0"/></linearGradient></defs>
-    ${[30,72,114,156].map(v=>`<line class="gridline" x1="40" y1="${v}" x2="480" y2="${v}"/>`).join("")}
+  const gridEnd = compact ? 340 : 880;
+  return `<svg class="cashflow-chart" viewBox="0 0 ${chartWidth} 190" preserveAspectRatio="none" role="img" aria-label="Income and spending chart for the last six months"><defs><linearGradient id="incomeGradient" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#4d86c8" stop-opacity=".14"/><stop offset="1" stop-color="#4d86c8" stop-opacity="0"/></linearGradient><linearGradient id="expenseGradient" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#ee9b7d" stop-opacity=".13"/><stop offset="1" stop-color="#ee9b7d" stop-opacity="0"/></linearGradient></defs>
+    ${[30,72,114,156].map(v=>`<line class="gridline" x1="45" y1="${v}" x2="${gridEnd}" y2="${v}"/>`).join("")}
     <path class="income-fill" d="${area("income")}"/><path class="expense-fill" d="${area("expense")}"/><path class="income-line" d="${line("income")}"/><path class="expense-line" d="${line("expense")}"/>
     ${months.map((m,i)=>`<circle class="point blue" cx="${x(i)}" cy="${y(m.values.income)}" r="3.2"/><circle class="point orange" cx="${x(i)}" cy="${y(m.values.expense)}" r="3.2"/><text x="${x(i)}" y="178" text-anchor="middle">${m.date.toLocaleDateString(undefined,{month:"short"})}</text>`).join("")}
     <text x="0" y="34">${money(max, true)}</text><text x="0" y="76">${money(max*.66, true)}</text><text x="0" y="118">${money(max*.33, true)}</text></svg>`;
@@ -439,6 +465,12 @@ function handleAction(action, id) {
   if (action === "currency") { const select = document.getElementById("currencySelect"); if (select) { data.currency = select.value; saveData(); render(); showToast("Currency preference saved."); } }
 }
 document.getElementById("appContent").addEventListener("click", e => {
+  const sliderControl = e.target.closest("[data-feature-slider]");
+  if (sliderControl) {
+    const track = document.querySelector(".overview-feature-track");
+    if (track) track.scrollBy({ left: (sliderControl.dataset.featureSlider === "next" ? 1 : -1) * track.clientWidth, behavior: "smooth" });
+    return;
+  }
   const button = e.target.closest("[data-action]");
   if (button) handleAction(button.dataset.action, button.dataset.id);
 });
