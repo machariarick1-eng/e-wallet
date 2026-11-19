@@ -91,6 +91,7 @@ let transactionFilter = "all";
 let cashflowView = "monthly";
 let pendingTransactionImage = "";
 let toastTimer;
+let loadingTimer;
 const AUTH_SESSION_KEY = "e-wallet-session";
 const LOGIN_USERNAME = "Erick";
 const LOGIN_PASSWORD = "4695";
@@ -209,8 +210,9 @@ function toggleTheme() {
   render();
   showToast(`${data.theme === "dark" ? "Dark" : "Light"} theme enabled.`);
 }
-function setPage(page, updateUrl = true) {
+function setPage(page, updateUrl = true, showLoader = false) {
   if (!names[page]) return;
+  if (showLoader) showLoadingScreen();
   activePage = page;
   if (updateUrl && location.hash !== `#${page}`) history.pushState({ page }, "", `#${page}`);
   document.querySelectorAll(".nav-item[data-page]").forEach(el => el.classList.toggle("active", el.dataset.page === page));
@@ -219,7 +221,7 @@ function setPage(page, updateUrl = true) {
   setProfileMenuOpen(false);
   render();
 }
-document.querySelectorAll("[data-page]").forEach(el => el.addEventListener("click", e => { e.preventDefault(); setPage(el.dataset.page); }));
+document.querySelectorAll("[data-page]").forEach(el => el.addEventListener("click", e => { e.preventDefault(); setPage(el.dataset.page, true, el.classList.contains("nav-item")); }));
 window.addEventListener("popstate", () => setPage(pageFromHash(), false));
 window.addEventListener("resize", () => {
   const compact = window.matchMedia("(max-width: 1000px)").matches;
@@ -244,11 +246,17 @@ document.addEventListener("keydown", e => {
 document.getElementById("themeToggle").addEventListener("click", toggleTheme);
 document.getElementById("todayLabel").textContent = new Intl.DateTimeFormat(undefined, { weekday: "short", month: "short", day: "numeric" }).format(today);
 applyTheme();
-setTimeout(() => {
+loadingTimer = setTimeout(hideLoadingScreen, 1000);
+
+function showLoadingScreen() {
   const loadingScreen = document.getElementById("loadingScreen");
-  loadingScreen.classList.add("is-hidden");
-  setTimeout(() => loadingScreen.remove(), 220);
-}, 1000);
+  clearTimeout(loadingTimer);
+  loadingScreen.classList.remove("is-hidden");
+  loadingTimer = setTimeout(hideLoadingScreen, 450);
+}
+function hideLoadingScreen() {
+  document.getElementById("loadingScreen").classList.add("is-hidden");
+}
 
 function heading(kicker, title, subtitle, action = "") {
   return `<div class="page-heading"><div><div class="eyebrow">${kicker}</div><h1>${title}</h1><p class="subheading">${subtitle}</p></div>${action}</div>`;
