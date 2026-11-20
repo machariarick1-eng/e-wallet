@@ -163,7 +163,7 @@ td { padding: 12px 10px; border-top: 1px solid #f1f3f5; color: #6d7a8e; font-siz
 .card-balance { font-size: 18px; font-weight: 700; margin-top: 14px; letter-spacing: -.4px; }
 .card-balance small { font-size: 12px; color: #929eae; font-weight: 500; letter-spacing: 0; }
 .card-actions { display: flex; gap: 7px; margin-top: 14px; }
-.icon-button { min-width: 36px; min-height: 36px; background: transparent; border: 0; color: #98a3b2; padding: 5px; font-size: 18px; }
+.icon-button { width: 36px; height: 36px; display: grid; place-items: center; background: transparent; border: 0; border-radius: 50%; color: #98a3b2; padding: 0; font-size: 18px; line-height: 1; }
 .icon-button:hover { color: var(--orange); }
 .holding-icon { background: #f2effb; color: #8064bd; }
 .holding-card:nth-child(3n+2) .holding-icon { background: var(--green-pale); color: var(--green); }
@@ -198,7 +198,8 @@ td { padding: 12px 10px; border-top: 1px solid #f1f3f5; color: #6d7a8e; font-siz
 .modal-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 18px; }
 .modal-header h2 { font-size: 16px; letter-spacing: -.3px; margin: 0; font-weight: 700; }
 .modal-header p { color: #929eae; font-size: 12px; line-height: 1.5; margin: 6px 0 0; }
-.close-button { border: 0; background: transparent; color: #8894a5; font-size: 20px; line-height: 1; padding: 0 2px; }
+.close-button { width: 36px; height: 36px; flex: 0 0 36px; display: grid; place-items: center; border: 0; border-radius: 50%; background: var(--surface-muted); color: #8894a5; font-size: 20px; line-height: 1; padding: 0; }
+.close-button:hover { background: var(--blue-pale); color: var(--ink); }
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .field { display: grid; gap: 6px; }
 .field.full { grid-column: 1/-1; }
@@ -548,6 +549,34 @@ html[data-theme="dark"] .planner-equation { background: rgba(15, 20, 26, .34); b
 .profile-menu-item:hover, .profile-menu-item:focus-visible { background: var(--surface-muted); outline: none; }
 .profile-menu-item.sign-out-item { color: var(--orange); }
 .overview-feature-section { margin-top: 28px; }
+.overview-metric-grid { margin-top: 15px; }
+.overview-calendar { display: grid; grid-template-columns: minmax(280px, .82fr) minmax(340px, 1.18fr); align-items: stretch; gap: 14px; margin-top: 14px; }
+.overview-calendar-month, .overview-agenda { min-width: 0; border: 1px solid var(--glass-edge); border-radius: 13px; background: linear-gradient(145deg, var(--glass-highlight), var(--glass-surface)); box-shadow: var(--shadow), inset 0 1px 0 var(--glass-highlight); backdrop-filter: blur(18px) saturate(150%); -webkit-backdrop-filter: blur(18px) saturate(150%); }
+.overview-calendar-month { padding: 18px; }
+.overview-calendar-header, .overview-agenda-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.overview-calendar-header span, .overview-agenda-header span { color: var(--muted); font-size: 9px; font-weight: 700; letter-spacing: 1.15px; }
+.overview-calendar-header h2, .overview-agenda-header h2 { margin: 5px 0 0; font-size: 15px; letter-spacing: -.25px; }
+.overview-calendar-header time { color: var(--blue); background: var(--blue-pale); border-radius: 99px; padding: 7px 9px; font-size: 10px; white-space: nowrap; }
+.overview-calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-top: 14px; text-align: center; }
+.overview-calendar-weekday { color: var(--muted); font-size: 9px; font-weight: 700; padding-bottom: 3px; }
+.overview-calendar-day { position: relative; aspect-ratio: 1.25; min-height: 24px; display: grid; place-items: center; border-radius: 7px; color: var(--ink); font-size: 10px; }
+.overview-calendar-day.blank { color: transparent; }
+.overview-calendar-day.today { background: var(--blue); color: #fff; font-weight: 800; box-shadow: 0 5px 12px rgba(40,103,189,.18); }
+.overview-calendar-day.has-event:not(.today)::after { content: ""; position: absolute; bottom: 2px; width: 3px; height: 3px; border-radius: 50%; background: var(--orange); }
+.overview-agenda { display: flex; flex-direction: column; min-height: 100%; padding: 18px; }
+.overview-agenda-header { align-items: center; }
+.overview-agenda-header h2 { font-size: 15px; }
+.overview-agenda-list { flex: 1; display: grid; align-content: start; gap: 6px; margin-top: 12px; }
+.overview-agenda-item { min-width: 0; display: grid; grid-template-columns: 68px minmax(0, 1fr) 14px; align-items: center; gap: 10px; min-height: 55px; padding: 8px 10px; border: 1px solid var(--surface-border); border-radius: 9px; color: var(--ink); text-decoration: none; background: rgba(255,255,255,.38); }
+.overview-agenda-item:hover { border-color: #b8cae0; background: var(--surface-muted); }
+.overview-agenda-date { color: var(--blue); font-size: 11px; font-weight: 700; }
+.overview-agenda-copy { min-width: 0; display: grid; gap: 3px; }
+.overview-agenda-copy strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
+.overview-agenda-copy small { color: var(--muted); font-size: 10px; }
+.overview-agenda-item > span:last-child { color: var(--muted); font-size: 20px; }
+.overview-agenda-empty { min-height: 120px; display: grid; place-content: center; text-align: center; gap: 5px; color: var(--muted); border: 1px dashed var(--surface-border); border-radius: 9px; }
+.overview-agenda-empty strong { color: var(--ink); font-size: 12px; }
+.overview-agenda-empty span { font-size: 10px; }
 .overview-feature-heading { display: flex; justify-content: space-between; align-items: end; gap: 18px; margin-bottom: 13px; }
 .overview-feature-heading .eyebrow { margin-bottom: 5px; }
 .overview-feature-heading h2 { margin: 0; font-size: 17px; letter-spacing: -.35px; }
@@ -651,6 +680,7 @@ html[data-theme="dark"] .spending-week { background: rgba(15, 20, 26, .35); bord
 @media (max-width: 680px) {
   .sidebar { overflow-y: auto; }
   .overview-feature-section { margin-top: 23px; }
+  .overview-calendar { grid-template-columns: 1fr; }
   .overview-feature-heading h2 { font-size: 15px; }
   .overview-feature-card { min-height: 205px; grid-template-columns: 42px minmax(0, 1fr) 18px; gap: 13px; padding: 23px 18px; }
   .overview-feature-icon { width: 42px; height: 42px; border-radius: 12px; }

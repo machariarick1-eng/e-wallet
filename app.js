@@ -295,15 +295,33 @@ function renderOverview() {
   const savingsProgress = savingsTarget ? Math.min(100, savingsTotal() / savingsTarget * 100) : 0;
   const planTarget = data.plans.reduce((sum, plan) => sum + Number(plan.target), 0);
   const planSaved = data.plans.reduce((sum, plan) => sum + Number(plan.saved), 0);
+  const monthName = today.toLocaleDateString(undefined, { month: "long", year: "numeric" });
+  const firstWeekday = new Date(today.getFullYear(), today.getMonth(), 1).getDay();
+  const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+  const calendarDays = Array.from({ length: 42 }, (_, i) => {
+    const day = i - firstWeekday + 1;
+    return day >= 1 && day <= daysInMonth ? day : null;
+  });
+  const recurringDates = new Set((data.recurringTransactions || []).filter(item => item.active !== false).map(item => Number(item.dayOfMonth)).filter(day => day >= 1 && day <= 31));
+  const datedEvents = [
+    ...(data.goals || []).map(item => ({ name: item.name, date: item.due, kind: "Goal" })),
+    ...(data.plans || []).map(item => ({ name: item.name, date: item.due, kind: "Plan" })),
+    ...(data.recurringTransactions || []).filter(item => item.active !== false).map(item => {
+      const day = Math.min(Number(item.dayOfMonth) || 1, daysInMonth);
+      return { name: item.name, date: iso(new Date(today.getFullYear(), today.getMonth(), day)), kind: "Monthly" };
+    })
+  ].filter(item => item.date)
+   .map(item => ({ ...item, dateObject: new Date(`${item.date}T00:00:00`) }))
+   .filter(item => item.dateObject >= new Date(today.getFullYear(), today.getMonth(), today.getDate()))
+   .sort((a, b) => a.dateObject - b.dateObject)
+   .slice(0, 4);
+  const agenda = datedEvents.length ? datedEvents.map(item => {
+    const dateLabel = item.dateObject.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+    return `<a class="overview-agenda-item" href="#${item.kind === "Monthly" ? "recurring" : item.kind === "Goal" ? "savings" : "planner"}" data-page="${item.kind === "Monthly" ? "recurring" : item.kind === "Goal" ? "savings" : "planner"}"><span class="overview-agenda-date">${dateLabel}</span><span class="overview-agenda-copy"><strong>${escapeHtml(item.name)}</strong><small>${item.kind} · on the horizon</small></span><span aria-hidden="true">›</span></a>`;
+  }).join("") : `<div class="overview-agenda-empty"><strong>Your month has breathing room.</strong><span>Add a goal or monthly item and it will appear here.</span></div>`;
   return `${heading("YOUR MONEY, AT A GLANCE", "Good things are growing, Erick.", "Here’s how your money is moving this month.", actionButton("Add transaction", "transaction"))}
-    <section class="cards-grid">
-      ${metric("Net cash flow", money(totalBalance()), "Income less spending recorded", "wallet", "cashflow")}
-      ${metric("Income this month", money(mt.income), `<span class="positive">↗</span> ${money(weeklyTotals.income)} in the last 7 days`, "up", "transactions", "income")}
-      ${metric("Spending this month", money(mt.expense), `<span class="negative">↘</span> ${money(weeklyTotals.expense)} in the last 7 days`, "down", "spending")}
-      ${metric("Savings & investments", money(savingsTotal() + investmentsValue()), `<span class="positive">↗</span> ${money(investGain)} investment growth`, "target", "savings")}
-    </section>
     <section class="overview-feature-section" aria-label="Explore your money">
-      <div class="overview-feature-heading"><div><div class="eyebrow">YOUR NEXT STEPS</div><h2>Make room for what matters.</h2></div><div class="overview-slider-controls"><button type="button" data-feature-slider="prev" aria-label="Previous featured item">←</button><button type="button" data-feature-slider="next" aria-label="Next featured item">→</button></div></div>
+      <div class="overview-feature-heading"><div><div class="eyebrow">CHOOSE YOUR NEXT CHAPTER</div><h2>There’s more than one way to grow.</h2></div><div class="overview-slider-controls"><button type="button" data-feature-slider="prev" aria-label="Previous featured item">←</button><button type="button" data-feature-slider="next" aria-label="Next featured item">→</button></div></div>
       <div class="overview-feature-slider" role="region" aria-label="Savings, investments, and purchase planner" aria-roledescription="carousel">
         <div class="overview-feature-track">
           <a class="overview-feature-card savings-feature" href="#savings" data-page="savings" aria-roledescription="slide" aria-label="1 of 3: Savings plan">
@@ -316,6 +334,25 @@ function renderOverview() {
             <span class="overview-feature-icon" aria-hidden="true">${icons.bag}</span><span class="overview-feature-copy"><small>PLAN THE GOOD STUFF</small><strong>Purchase planner</strong><em>${data.plans.length} ${data.plans.length === 1 ? "plan" : "plans"} in progress</em><b>${money(planSaved)}<span> of ${money(planTarget)} saved</span></b><span class="overview-feature-caption">Turn the things you want into doable goals</span></span><span class="overview-feature-arrow" aria-hidden="true">↗</span>
           </a>
         </div>
+      </div>
+    </section>
+    <section class="cards-grid overview-metric-grid">
+      ${metric("Net cash flow", money(totalBalance()), "Income less spending recorded", "wallet", "cashflow")}
+      ${metric("Income this month", money(mt.income), `<span class="positive">↗</span> ${money(weeklyTotals.income)} in the last 7 days`, "up", "transactions", "income")}
+      ${metric("Spending this month", money(mt.expense), `<span class="negative">↘</span> ${money(weeklyTotals.expense)} in the last 7 days`, "down", "spending")}
+      ${metric("Savings & investments", money(savingsTotal() + investmentsValue()), `<span class="positive">↗</span> ${money(investGain)} investment growth`, "target", "savings")}
+    </section>
+    <section class="overview-calendar" aria-label="Month and upcoming money dates">
+      <div class="overview-calendar-month">
+        <div class="overview-calendar-header"><div><span>THE MONTH AT A GLANCE</span><h2>${monthName}</h2></div><time datetime="${iso(today)}">${today.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}</time></div>
+        <div class="overview-calendar-grid" aria-label="${monthName}">
+          ${["S","M","T","W","T","F","S"].map(day => `<span class="overview-calendar-weekday">${day}</span>`).join("")}
+          ${calendarDays.map(day => day ? `<span class="overview-calendar-day ${day === today.getDate() ? "today" : ""} ${recurringDates.has(day) ? "has-event" : ""}" ${day === today.getDate() ? 'aria-current="date"' : ""}>${day}</span>` : `<span class="overview-calendar-day blank"></span>`).join("")}
+        </div>
+      </div>
+      <div class="overview-agenda">
+        <div class="overview-agenda-header"><div><span>COMING UP</span><h2>A few dates to keep close.</h2></div><button class="text-link" data-action="open-recurring">Monthly items</button></div>
+        <div class="overview-agenda-list">${agenda}</div>
       </div>
     </section>`;
 }
@@ -487,6 +524,7 @@ function renderSettings() {
 function handleAction(action, id) {
   if (action === "open-transactions") return setPage("transactions");
   if (action === "open-savings") return setPage("savings");
+  if (action === "open-recurring") return setPage("recurring");
   if (action === "open-settings") return setPage("settings");
   if (action === "transaction") return openModal("transaction");
   if (action === "upload-transaction") return openModal("transaction");
