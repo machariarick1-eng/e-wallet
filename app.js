@@ -708,6 +708,7 @@ function openModal(kind, id) {
   };
   const template = templates[kind];
   if (!template) return;
+  document.body.classList.add("modal-open");
   document.getElementById("modalRoot").innerHTML = `<div class="modal-backdrop" data-close-modal><section class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title"><div class="modal-header"><div><h2 id="modal-title">${template.title}</h2><p>${template.subtitle}</p></div><button type="button" class="close-button" aria-label="Close dialog" data-close-modal>×</button></div><form id="entryForm"><div class="form-grid">${template.fields}</div><div class="modal-actions"><button type="button" class="button secondary" data-close-modal>Cancel</button><button type="submit" class="button">Save ${kind.startsWith("contribute")?"contribution":"details"}</button></div></form></section></div>`;
   document.getElementById("modalRoot").querySelectorAll("[data-close-modal]").forEach(el => el.addEventListener("click", e => { if (e.target === el || el.tagName === "BUTTON") closeModal(); }));
   document.getElementById("entryForm").addEventListener("submit", e => { e.preventDefault(); submitForm(kind, new FormData(e.target)); });
@@ -716,7 +717,10 @@ function openModal(kind, id) {
   const first = document.querySelector("#entryForm input:not([type=hidden])");
   if (first) first.focus();
 }
-function closeModal() { document.getElementById("modalRoot").innerHTML = ""; }
+function closeModal() {
+  document.getElementById("modalRoot").innerHTML = "";
+  document.body.classList.remove("modal-open");
+}
 function submitForm(kind, form) {
   const v = Object.fromEntries(form.entries());
   const amount = Number(v.amount || v.target);

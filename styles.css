@@ -210,7 +210,7 @@ td { padding: 12px 10px; border-top: 1px solid #f1f3f5; color: #6d7a8e; font-siz
 .danger-zone p { color: #8f7a73; font-size: 12px; line-height: 1.5; margin: 0 0 14px; }
 .toast { position: fixed; right: 24px; bottom: 23px; z-index: 20; background: #24334b; color: white; padding: 13px 17px; border-radius: 8px; font-size: 13px; box-shadow: 0 8px 24px rgba(22,35,54,.2); transform: translateY(12px); opacity: 0; pointer-events: none; transition: .2s ease; }
 .toast.visible { transform: translateY(0); opacity: 1; }
-.modal-backdrop { position: fixed; inset: 0; background: rgba(22,34,52,.35); z-index: 10; display: grid; place-items: center; padding: 20px; }
+.modal-backdrop { position: fixed; inset: 0; width: 100%; height: 100dvh; background: rgba(22,34,52,.35); z-index: 10; display: grid; place-items: center; padding: 20px; }
 .modal { width: min(100%, 480px); max-height: 92vh; overflow-y: auto; border: 1px solid var(--glass-edge); border-radius: 16px; background: linear-gradient(145deg, rgba(255,255,255,.78), rgba(255,255,255,.50)); color: var(--ink); padding: 24px; box-shadow: 0 24px 80px rgba(24,38,57,.24), inset 0 1px 0 rgba(255,255,255,.92); backdrop-filter: blur(36px) saturate(190%) contrast(104%); -webkit-backdrop-filter: blur(36px) saturate(190%) contrast(104%); }
 .modal-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 18px; }
 .modal-header h2 { font-size: 16px; letter-spacing: -.3px; margin: 0; font-weight: 700; }
@@ -369,8 +369,11 @@ html[data-theme="dark"] .field input::placeholder { color: #8290a2; }
   .list-toolbar { flex-wrap: wrap; }
   .form-grid { grid-template-columns: 1fr; }
   .field.full { grid-column: auto; }
-  .modal-backdrop { padding: 10px; }
-  .modal { padding: 20px; }
+  body.modal-open { overflow: hidden; position: relative; }
+  .modal-backdrop { align-items: center; height: 100dvh; padding: max(8px, env(safe-area-inset-top)) 8px max(8px, env(safe-area-inset-bottom)); }
+  .modal { width: 100%; max-height: calc(100dvh - 16px - env(safe-area-inset-top) - env(safe-area-inset-bottom)); padding: 18px; border-radius: 14px; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+  .field input, .field select { min-height: 48px; font-size: 16px; }
+  .field label { font-size: 12px; }
   .settings-row { flex-wrap: wrap; gap: 10px; }
   .setting-control, .settings-row > .button { flex: 1 1 100%; width: 100%; }
 }
@@ -758,6 +761,49 @@ html[data-theme="dark"] .planner-equation { background: rgba(15, 20, 26, .34); b
 .spending-activity-panel .panel-header { align-items: center; }
 html[data-theme="dark"] .profile-menu { border-color: var(--glass-edge); background: linear-gradient(145deg, rgba(68,84,104,.72), rgba(27,38,52,.68)); backdrop-filter: blur(36px) saturate(175%) contrast(108%); -webkit-backdrop-filter: blur(36px) saturate(175%) contrast(108%); }
 html[data-theme="dark"] .modal { background: linear-gradient(145deg, rgba(67,83,103,.78), rgba(27,38,52,.72)); }
+
+/* Dark mode uses solid, high-contrast surfaces instead of glass effects. */
+html[data-theme="dark"] .metric-card,
+html[data-theme="dark"] .panel,
+html[data-theme="dark"] .goal-card,
+html[data-theme="dark"] .holding-card,
+html[data-theme="dark"] .planner-card,
+html[data-theme="dark"] .recurring-card,
+html[data-theme="dark"] .side-note,
+html[data-theme="dark"] .overview-calendar-month,
+html[data-theme="dark"] .overview-agenda,
+html[data-theme="dark"] .entity-slide,
+html[data-theme="dark"] .funnel-card,
+html[data-theme="dark"] .funnel-summary > div,
+html[data-theme="dark"] .income-source-panel,
+html[data-theme="dark"] .income-chart-panel,
+html[data-theme="dark"] .overview-agenda-item,
+html[data-theme="dark"] .overview-feature-card,
+html[data-theme="dark"] .profile-menu,
+html[data-theme="dark"] .modal,
+html[data-theme="dark"] .income-hero,
+html[data-theme="dark"] .savings-hero,
+html[data-theme="dark"] .portfolio-hero,
+html[data-theme="dark"] .planner-intro,
+html[data-theme="dark"] .cashflow-hero,
+html[data-theme="dark"] .spending-hero {
+  background: var(--paper);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .16);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+html[data-theme="dark"] .topbar {
+  background: var(--paper);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, .16);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+html[data-theme="dark"] .sidebar {
+  background: var(--paper);
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
 html[data-theme="dark"] .profile-menu-heading { border-color: var(--surface-border); }
 html[data-theme="dark"] .overview-slider-controls button { border-color: var(--surface-border); background: var(--paper); color: var(--ink); }
 html[data-theme="dark"] .savings-feature { background: rgba(37,60,49,.86); border-color: rgba(171,195,222,.16); }
@@ -803,7 +849,7 @@ html[data-theme="dark"] .spending-week { background: rgba(15, 20, 26, .35); bord
   .income-week-card { min-width: 0; }
   .income-detail-grid { grid-template-columns: 1fr; }
   .income-chart { height: 170px; }
-  .breadcrumb { display: none; }
+  .breadcrumb { display: flex; margin-left: 8px; margin-right: auto; }
   .topbar { justify-content: space-between; }
   .topbar-right { margin-left: auto; }
   .topbar-right .theme-toggle { width: 36px; height: 36px; }
@@ -834,4 +880,41 @@ html[data-theme="dark"] .spending-week { background: rgba(15, 20, 26, .35); bord
   .overview-feature-heading { align-items: center; }
   .overview-slider-controls button { width: 34px; height: 34px; }
   .overview-feature-card { min-height: 198px; }
+}
+
+/* Final dark-mode override: no translucent or refractive surfaces. */
+html[data-theme="dark"] .metric-card,
+html[data-theme="dark"] .panel,
+html[data-theme="dark"] .goal-card,
+html[data-theme="dark"] .holding-card,
+html[data-theme="dark"] .planner-card,
+html[data-theme="dark"] .recurring-card,
+html[data-theme="dark"] .side-note,
+html[data-theme="dark"] .overview-calendar-month,
+html[data-theme="dark"] .overview-agenda,
+html[data-theme="dark"] .entity-slide,
+html[data-theme="dark"] .funnel-card,
+html[data-theme="dark"] .funnel-summary > div,
+html[data-theme="dark"] .income-source-panel,
+html[data-theme="dark"] .income-chart-panel,
+html[data-theme="dark"] .overview-agenda-item,
+html[data-theme="dark"] .overview-feature-card,
+html[data-theme="dark"] .profile-menu,
+html[data-theme="dark"] .modal,
+html[data-theme="dark"] .income-hero,
+html[data-theme="dark"] .income-week-card,
+html[data-theme="dark"] .savings-hero,
+html[data-theme="dark"] .savings-next-goal,
+html[data-theme="dark"] .portfolio-hero,
+html[data-theme="dark"] .planner-intro,
+html[data-theme="dark"] .planner-equation,
+html[data-theme="dark"] .cashflow-hero,
+html[data-theme="dark"] .cashflow-totals > div,
+html[data-theme="dark"] .spending-hero,
+html[data-theme="dark"] .spending-week {
+  background: var(--paper);
+  border-color: var(--surface-border);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .16);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
