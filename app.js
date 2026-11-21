@@ -12,6 +12,21 @@ const icons = {
   down: '<svg viewBox="0 0 24 24"><path d="m4 8 6 6 4-4 6 7"/><path d="M14 17h6v-6"/></svg>',
   calendar: '<svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="16" rx="2"/><path d="M7.5 3v4M16.5 3v4M3.5 10h17M8 14h2M14 14h2M8 17h2"/></svg>'
 };
+const symbolIcons = {
+  "✳": '<svg viewBox="0 0 24 24"><path d="M12 3v18M3 12h18M5.6 5.6l12.8 12.8M18.4 5.6 5.6 18.4"/><circle cx="12" cy="12" r="2.2"/></svg>',
+  "✈": '<svg viewBox="0 0 24 24"><path d="M3 11.5 21 5l-6.5 14-3.2-6.2L3 11.5Z"/><path d="m11.3 12.8 5.2-5.3"/></svg>',
+  "⌂": '<svg viewBox="0 0 24 24"><path d="M3.5 11.5 12 4l8.5 7.5"/><path d="M5.5 10v10h13V10M9.5 20v-6h5v6"/></svg>',
+  "☂": '<svg viewBox="0 0 24 24"><path d="M12 3v13.5a3.5 3.5 0 0 1-7 0"/><path d="M4 10.5a8 8 0 0 1 16 0c-2.1-1.8-5.2-1.8-8 0-2.8-1.8-5.9-1.8-8 0Z"/></svg>',
+  "♫": '<svg viewBox="0 0 24 24"><path d="M9 18V6l9-2v12"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="15.5" cy="16" r="2.5"/></svg>',
+  "⌘": '<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="12" rx="2"/><path d="M8 21h8M12 17v4"/></svg>',
+  "☀": '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9 7 7M17 17l2.1 2.1M19.1 4.9 17 7M7 17l-2.1 2.1"/></svg>',
+  "◒": '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 1 0 16V4Z"/></svg>',
+  "↗": '<svg viewBox="0 0 24 24"><path d="m5 19 14-14M9 5h10v10"/></svg>'
+};
+function symbolIcon(symbol) {
+  const svg = symbolIcons[symbol] || symbolIcons["✳"];
+  return `<span class="symbol-icon" aria-hidden="true">${svg}</span>`;
+}
 document.querySelectorAll("[data-icon]").forEach(el => { el.innerHTML = icons[el.dataset.icon] || ""; });
 
 const today = new Date();
@@ -509,7 +524,7 @@ function goalMini(g) {
 }
 function transactionTable(items) {
   if (!items.length) return `<div class="empty-state"><strong>No transactions yet.</strong>When you add one, it’ll show up here.</div>`;
-  return `<div class="table-wrap"><table><thead><tr><th>TRANSACTION</th><th>CATEGORY</th><th>DATE</th><th>TYPE</th><th style="text-align:right">AMOUNT</th></tr></thead><tbody>${items.map(t=>`<tr><td><div class="transaction-name"><span class="transaction-symbol ${t.type}">${t.type==="income"?"↙":"↗"}</span>${escapeHtml(t.name)}${t.image?`<img class="transaction-image-thumb" src="${t.image}" alt="Uploaded transaction image">`:""}</div></td><td>${escapeHtml(t.category)}</td><td>${fmtDate(t.date)}</td><td><span class="type-pill ${t.type}">${t.type==="income"?"Income":"Expense"}</span></td><td class="amount ${t.type}">${t.type==="income"?"+":"−"}${money(t.amount)}</td></tr>`).join("")}</tbody></table></div>`;
+  return `<div class="table-wrap"><table><thead><tr><th>TRANSACTION</th><th>CATEGORY</th><th>DATE</th><th>TYPE</th><th style="text-align:right">AMOUNT</th><th style="text-align:right">ACTIONS</th></tr></thead><tbody>${items.map(t=>`<tr><td><div class="transaction-name"><span class="transaction-symbol ${t.type}">${t.type==="income"?"↙":"↗"}</span>${escapeHtml(t.name)}${t.image?`<img class="transaction-image-thumb" src="${t.image}" alt="Uploaded transaction image">`:""}</div></td><td>${escapeHtml(t.category)}</td><td>${fmtDate(t.date)}</td><td><span class="type-pill ${t.type}">${t.type==="income"?"Income":"Expense"}</span></td><td class="amount ${t.type}">${t.type==="income"?"+":"−"}${money(t.amount)}</td><td><div class="table-actions"><button class="icon-button table-edit" type="button" data-action="edit-transaction" data-id="${t.id}" aria-label="Edit ${escapeHtml(t.name)}">✎</button><button class="icon-button table-delete" type="button" data-delete="transaction" data-id="${t.id}" aria-label="Delete ${escapeHtml(t.name)}">×</button></div></td></tr>`).join("")}</tbody></table></div>`;
 }
 function renderTransactions() {
   const items = data.transactions.filter(t=>transactionFilter==="all"||t.type===transactionFilter).slice().sort((a,b)=>b.date.localeCompare(a.date));
@@ -543,7 +558,7 @@ function renderFunnels() {
     const percent = Math.min(100, spent / limit * 100);
     const remaining = Math.max(0, limit - spent);
     const level = percent >= 95 ? "danger" : percent >= 75 ? "warning" : percent >= 50 ? "caution" : "steady";
-    return `<article class="funnel-card funnel-${level}"><div class="funnel-card-top"><div class="funnel-icon">${escapeHtml(funnel.icon || "◒")}</div><button class="icon-button" aria-label="Delete ${escapeHtml(funnel.name)}" data-delete="funnel" data-id="${funnel.id}">×</button></div><div class="funnel-card-heading"><h2>${escapeHtml(funnel.name)}</h2><span>${Math.round(percent)}% used</span></div><div class="funnel-amount"><strong>${money(spent)}</strong><span>of ${money(limit)} this month</span></div><div class="funnel-progress" aria-label="${Math.round(percent)} percent used"><span style="width:${percent}%"></span></div><div class="funnel-card-footer"><span>${money(remaining)} remaining</span><small>${level === "danger" ? "95% reached" : level === "warning" ? "75% reached" : level === "caution" ? "50% reached" : "Still comfortable"}</small></div></article>`;
+    return `<article class="funnel-card funnel-${level}"><div class="funnel-card-top"><div class="funnel-icon">${symbolIcon(funnel.icon || "◒")}</div><div class="item-actions"><button class="icon-button" type="button" data-action="edit-funnel" data-id="${funnel.id}" aria-label="Edit ${escapeHtml(funnel.name)}">✎</button><button class="icon-button" aria-label="Delete ${escapeHtml(funnel.name)}" data-delete="funnel" data-id="${funnel.id}">×</button></div></div><div class="funnel-card-heading"><h2>${escapeHtml(funnel.name)}</h2><span>${Math.round(percent)}% used</span></div><div class="funnel-amount"><strong>${money(spent)}</strong><span>of ${money(limit)} this month</span></div><div class="funnel-progress" aria-label="${Math.round(percent)} percent used"><span style="width:${percent}%"></span></div><div class="funnel-card-footer"><span>${money(remaining)} remaining</span><small>${level === "danger" ? "95% reached" : level === "warning" ? "75% reached" : level === "caution" ? "50% reached" : "Still comfortable"}</small></div></article>`;
   }).join("");
   setTimeout(checkFunnelAlerts, 0);
   return `${heading("SPENDING, WITH BOUNDARIES", "Money funnels", "Give everyday expenses a limit, then watch what’s left as the month unfolds.", actionButton("Create funnel", "funnel", true))}
@@ -589,7 +604,7 @@ function renderRecurring() {
     const recorded = item.lastRecordedMonth === month;
     const enabled = item.active !== false;
     const lead = Number(item.remindDaysBefore) || 0;
-    return `<article class="recurring-card ${enabled ? "" : "paused"}"><div class="recurring-card-top"><div class="recurring-icon">${item.type === "income" ? "↙" : "↗"}</div><button class="icon-button" aria-label="Delete ${escapeHtml(item.name)}" data-delete="recurring" data-id="${item.id}">×</button></div><h3>${escapeHtml(item.name)}</h3><div class="card-meta">${escapeHtml(item.category)} · ${item.type === "income" ? "Income" : "Expense"}</div><div class="card-balance">${money(item.amount)} <small>each month</small></div><div class="recurring-details"><span>Due on day ${Number(item.dayOfMonth)} each month</span><span>${lead ? `Reminder ${lead} day${lead === 1 ? "" : "s"} before` : "Reminder on due day"}</span></div><div class="recurring-status"><span class="type-pill ${recorded ? "income" : ""}">${!enabled ? "Paused" : recorded ? "Recorded this month" : "Not recorded this month"}</span><button class="text-link" data-action="toggle-recurring" data-id="${item.id}">${enabled ? "Pause" : "Resume"}</button></div><button class="button secondary record-button" data-action="record-recurring" data-id="${item.id}" ${recorded || !enabled ? "disabled" : ""}>${recorded ? "Recorded this month" : "Record this month"}</button></article>`;
+    return `<article class="recurring-card ${enabled ? "" : "paused"}"><div class="recurring-card-top"><div class="recurring-icon">${item.type === "income" ? "↙" : "↗"}</div><div class="item-actions"><button class="icon-button" type="button" data-action="edit-recurring" data-id="${item.id}" aria-label="Edit ${escapeHtml(item.name)}">✎</button><button class="icon-button" aria-label="Delete ${escapeHtml(item.name)}" data-delete="recurring" data-id="${item.id}">×</button></div></div><h3>${escapeHtml(item.name)}</h3><div class="card-meta">${escapeHtml(item.category)} · ${item.type === "income" ? "Income" : "Expense"}</div><div class="card-balance">${money(item.amount)} <small>each month</small></div><div class="recurring-details"><span>Due on day ${Number(item.dayOfMonth)} each month</span><span>${lead ? `Reminder ${lead} day${lead === 1 ? "" : "s"} before` : "Reminder on due day"}</span></div><div class="recurring-status"><span class="type-pill ${recorded ? "income" : ""}">${!enabled ? "Paused" : recorded ? "Recorded this month" : "Not recorded this month"}</span><button class="text-link" data-action="toggle-recurring" data-id="${item.id}">${enabled ? "Pause" : "Resume"}</button></div><button class="button secondary record-button" data-action="record-recurring" data-id="${item.id}" ${recorded || !enabled ? "disabled" : ""}>${recorded ? "Recorded this month" : "Record this month"}</button></article>`;
   }).join("");
   const permission = "Notification" in window ? Notification.permission : "unsupported";
   const browserAlerts = permission === "granted" ? "Browser alerts are enabled." : permission === "denied" ? "Browser alerts are blocked in this browser’s site settings." : permission === "unsupported" ? "Browser alerts aren’t available here; in-app reminders still work." : "Allow optional browser alerts for due reminders.";
@@ -600,7 +615,7 @@ function renderRecurring() {
 function renderSavings() {
   const goals = data.goals.map(g=>{
     const pct = Math.min(100, Number(g.saved)/Math.max(1,Number(g.target))*100);
-    return `<article class="goal-card"><div class="goal-card-top"><div class="goal-icon">${escapeHtml(g.icon||"✳")}</div><button class="icon-button" aria-label="Delete ${escapeHtml(g.name)}" data-delete="goal" data-id="${g.id}">×</button></div><h3>${escapeHtml(g.name)}</h3><div class="card-meta">Target date · ${fmtDate(g.due)}</div><div class="card-balance">${money(g.saved)} <small>of ${money(g.target)}</small></div><div class="progress-track"><div class="progress-fill" style="width:${pct}%"></div></div><div class="goal-mini-foot">${Math.round(pct)}% there · ${money(Math.max(0,g.target-g.saved))} to go</div><div class="card-actions"><button class="button secondary" data-action="contribute-goal" data-id="${g.id}">＋ Add savings</button></div></article>`;
+    return `<article class="goal-card"><div class="goal-card-top"><div class="goal-icon">${symbolIcon(g.icon||"✳")}</div><div class="item-actions"><button class="icon-button" type="button" data-action="edit-goal" data-id="${g.id}" aria-label="Edit ${escapeHtml(g.name)}">✎</button><button class="icon-button" aria-label="Delete ${escapeHtml(g.name)}" data-delete="goal" data-id="${g.id}">×</button></div></div><h3>${escapeHtml(g.name)}</h3><div class="card-meta">Target date · ${fmtDate(g.due)}</div><div class="card-balance">${money(g.saved)} <small>of ${money(g.target)}</small></div><div class="progress-track"><div class="progress-fill" style="width:${pct}%"></div></div><div class="goal-mini-foot">${Math.round(pct)}% there · ${money(Math.max(0,g.target-g.saved))} to go</div><div class="card-actions"><button class="button secondary" data-action="contribute-goal" data-id="${g.id}">＋ Add savings</button></div></article>`;
   }).join("");
   const saved = savingsTotal(), target = data.goals.reduce((s,g)=>s+Number(g.target),0);
   const progress = target ? Math.min(100, saved / target * 100) : 0;
@@ -608,7 +623,7 @@ function renderSavings() {
   const nextGoal = data.goals.filter(g => Number(g.saved) < Number(g.target)).sort((a,b) => (Number(a.target)-Number(a.saved)) - (Number(b.target)-Number(b.saved)))[0];
   const goalSlider = data.goals.map((g, index) => {
     const pct = Math.min(100, Number(g.saved) / Math.max(1, Number(g.target)) * 100);
-    return `<article class="entity-slide savings-slide" aria-label="${index + 1} of ${data.goals.length}"><div class="entity-slide-icon">${escapeHtml(g.icon || "✳")}</div><div><small>GOAL ${index + 1} OF ${data.goals.length}</small><h3>${escapeHtml(g.name)}</h3><strong>${money(g.saved)} <span>of ${money(g.target)}</span></strong><div class="entity-progress"><i style="width:${pct}%"></i></div></div><span>${Math.round(pct)}%</span></article>`;
+    return `<article class="entity-slide savings-slide" aria-label="${index + 1} of ${data.goals.length}"><div class="entity-slide-icon">${symbolIcon(g.icon || "✳")}</div><div><small>GOAL ${index + 1} OF ${data.goals.length}</small><h3>${escapeHtml(g.name)}</h3><strong>${money(g.saved)} <span>of ${money(g.target)}</span></strong><div class="entity-progress"><i style="width:${pct}%"></i></div></div><span>${Math.round(pct)}%</span></article>`;
   }).join("");
   return `${heading("MAKE ROOM FOR WHAT MATTERS", "Your future, taking shape.", "Set a goal, build a habit, and celebrate the little milestones.", actionButton("Create a goal", "goal"))}
     <section class="savings-hero"><div class="savings-hero-copy"><span class="savings-overline">SMALL STEPS ADD UP</span><h2>Your saved money has a purpose.</h2><p>You’ve set aside <strong>${money(saved)}</strong> across ${data.goals.length} ${data.goals.length===1?"goal":"goals"}.</p><div class="savings-hero-footer"><span>${money(remaining)} left to reach your targets</span><span>${Math.round(progress)}% of the way</span></div><div class="savings-progress-track"><span style="width:${progress}%"></span></div></div><div class="savings-next-goal"><span class="next-goal-label">NEXT MILESTONE</span>${nextGoal ? `<strong>${escapeHtml(nextGoal.name)}</strong><span>${money(Math.max(0,Number(nextGoal.target)-Number(nextGoal.saved)))} to go</span>` : `<strong>All goals reached</strong><span>Take a moment to celebrate.</span>`}<span class="savings-spark" aria-hidden="true">✳</span></div></section>
@@ -618,7 +633,7 @@ function renderSavings() {
 function monthGoalContributions() { return data.goalContributions ? data.goalContributions.filter(c=>c.date.slice(0,7)===iso(today).slice(0,7)).reduce((s,c)=>s+c.amount,0):0; }
 function renderInvestments() {
   const invested = data.investments.reduce((s,h)=>s+Number(h.invested),0), current = investmentsValue(), gain = current-invested;
-  const holdings = data.investments.map(h=>`<article class="holding-card"><div class="holding-top"><div class="holding-icon">${h.type==="Crypto"?"◇":h.type==="Stocks"?"↗":"◒"}</div><button class="icon-button" aria-label="Delete ${escapeHtml(h.name)}" data-delete="investment" data-id="${h.id}">×</button></div><h3>${escapeHtml(h.name)}</h3><div class="card-meta">${escapeHtml(h.type)} · Added ${fmtDate(h.date)}</div><div class="card-balance">${money(h.value)}</div><div class="return-label">${Number(h.value)>=Number(h.invested)?"↗ ":"↘ "}${money(Math.abs(h.value-h.invested))} ${Number(h.value)>=Number(h.invested)?"growth":"change"} · ${money(h.invested)} invested</div></article>`).join("");
+  const holdings = data.investments.map(h=>`<article class="holding-card"><div class="holding-top"><div class="holding-icon">${h.type==="Crypto"?"◇":h.type==="Stocks"?"↗":"◒"}</div><div class="item-actions"><button class="icon-button" type="button" data-action="edit-investment" data-id="${h.id}" aria-label="Edit ${escapeHtml(h.name)}">✎</button><button class="icon-button" aria-label="Delete ${escapeHtml(h.name)}" data-delete="investment" data-id="${h.id}">×</button></div></div><h3>${escapeHtml(h.name)}</h3><div class="card-meta">${escapeHtml(h.type)} · Added ${fmtDate(h.date)}</div><div class="card-balance">${money(h.value)}</div><div class="return-label">${Number(h.value)>=Number(h.invested)?"↗ ":"↘ "}${money(Math.abs(h.value-h.invested))} ${Number(h.value)>=Number(h.invested)?"growth":"change"} · ${money(h.invested)} invested</div></article>`).join("");
   const percent = invested ? (gain / invested) * 100 : 0;
   return `${heading("GROW AT YOUR OWN PACE", "Invest in your tomorrow.", "A clear view of what you’ve put in and where it stands today.", actionButton("Add investment", "investment"))}
     <section class="portfolio-hero"><div class="portfolio-hero-copy"><span class="portfolio-overline">YOUR TRACKED PORTFOLIO</span><p>Current value</p><h2>${money(current)}</h2><div class="portfolio-performance ${gain >= 0 ? "positive" : "negative"}">${gain >= 0 ? "↗" : "↘"} ${money(Math.abs(gain))} ${gain >= 0 ? "growth" : "change"} <span>· ${percent.toFixed(1)}% overall</span></div></div><div class="portfolio-hero-stats"><div><span>Amount invested</span><strong>${money(invested)}</strong></div><div><span>Tracked holdings</span><strong>${data.investments.length}</strong></div></div><div class="portfolio-decoration" aria-hidden="true"><i></i><i></i><i></i></div></section>
@@ -631,11 +646,11 @@ function renderPlanner() {
     const weeks = Math.max(1, Math.ceil(days/7)), months = Math.max(1, Math.ceil(days/30));
     const remaining = Math.max(0, Number(p.target)-Number(p.saved));
     const pct = Math.min(100, Number(p.saved)/Math.max(1,Number(p.target))*100);
-    return `<article class="planner-card"><div class="planner-card-head"><div class="planner-icon">${escapeHtml(p.icon||"✳")}</div><div class="planner-card-title"><h3>${escapeHtml(p.name)}</h3><span>Target · ${money(p.target)}</span></div><button class="icon-button" aria-label="Delete ${escapeHtml(p.name)}" data-delete="plan" data-id="${p.id}">×</button></div><div class="planner-card-progress"><div class="progress-track"><div class="progress-fill" style="width:${pct}%"></div></div><div class="planner-card-progress-label"><span>${money(p.saved)} saved</span><strong>${Math.round(pct)}%</strong></div></div><div class="planner-card-details"><div><span>Due</span><strong>${fmtDate(p.due)}</strong></div><div><span>Left to save</span><strong>${money(remaining)}</strong></div></div><div class="planner-result"><span>Set aside</span><div><strong>${money(remaining/weeks)}</strong><small>per week</small></div><div><strong>${money(remaining/months)}</strong><small>per month</small></div></div><button class="button secondary planner-add-button" data-action="contribute-plan" data-id="${p.id}">＋ Add to fund</button></article>`;
+    return `<article class="planner-card"><div class="planner-card-head"><div class="planner-icon">${symbolIcon(p.icon||"✳")}</div><div class="planner-card-title"><h3>${escapeHtml(p.name)}</h3><span>Target · ${money(p.target)}</span></div><div class="item-actions"><button class="icon-button" type="button" data-action="edit-plan" data-id="${p.id}" aria-label="Edit ${escapeHtml(p.name)}">✎</button><button class="icon-button" aria-label="Delete ${escapeHtml(p.name)}" data-delete="plan" data-id="${p.id}">×</button></div></div><div class="planner-card-progress"><div class="progress-track"><div class="progress-fill" style="width:${pct}%"></div></div><div class="planner-card-progress-label"><span>${money(p.saved)} saved</span><strong>${Math.round(pct)}%</strong></div></div><div class="planner-card-details"><div><span>Due</span><strong>${fmtDate(p.due)}</strong></div><div><span>Left to save</span><strong>${money(remaining)}</strong></div></div><div class="planner-result"><span>Set aside</span><div><strong>${money(remaining/weeks)}</strong><small>per week</small></div><div><strong>${money(remaining/months)}</strong><small>per month</small></div></div><button class="button secondary planner-add-button" data-action="contribute-plan" data-id="${p.id}">＋ Add to fund</button></article>`;
   }).join("");
   const planSlider = data.plans.map((p, index) => {
     const pct = Math.min(100, Number(p.saved) / Math.max(1, Number(p.target)) * 100);
-    return `<article class="entity-slide planner-slide" aria-label="${index + 1} of ${data.plans.length}"><div class="entity-slide-icon">${escapeHtml(p.icon || "✳")}</div><div><small>PLAN ${index + 1} OF ${data.plans.length}</small><h3>${escapeHtml(p.name)}</h3><strong>${money(p.saved)} <span>of ${money(p.target)}</span></strong><div class="entity-progress"><i style="width:${pct}%"></i></div></div><span>${Math.round(pct)}%</span></article>`;
+    return `<article class="entity-slide planner-slide" aria-label="${index + 1} of ${data.plans.length}"><div class="entity-slide-icon">${symbolIcon(p.icon || "✳")}</div><div><small>PLAN ${index + 1} OF ${data.plans.length}</small><h3>${escapeHtml(p.name)}</h3><strong>${money(p.saved)} <span>of ${money(p.target)}</span></strong><div class="entity-progress"><i style="width:${pct}%"></i></div></div><span>${Math.round(pct)}%</span></article>`;
   }).join("");
   return `${data.plans.length ? `<section class="entity-slider-section planner-top-slider"><div class="entity-slider-heading"><div><span class="eyebrow">PLAN THE GOOD STUFF</span><h1>Plans in motion.</h1></div><div class="planner-top-actions"><div class="overview-slider-controls"><button type="button" data-plan-slider="prev" aria-label="Previous purchase plan">←</button><button type="button" data-plan-slider="next" aria-label="Next purchase plan">→</button></div>${actionButton("Plan a purchase", "plan", true)}</div></div><div class="entity-slider" data-plan-track><div class="entity-track">${planSlider}</div></div></section>` : heading("PLAN THE GOOD STUFF", "Make it happen, one week at a time.", "Turn the thing you want into a saving plan that feels doable.", actionButton("Plan a purchase", "plan", true))}
     <section class="planner-intro planner-intro-below-slider"><div><span class="planner-overline">A PLAN YOU CAN LIVE WITH</span><h2>Big things get easier when you break them down.</h2><p>Choose what you want and when you want it. We’ll show you a weekly and monthly saving target.</p></div><div class="planner-equation"><span>WHAT'S LEFT</span><b>÷</b><span>TIME YOU HAVE</span><b>=</b><strong>A DOABLE PLAN</strong></div></section>
@@ -663,6 +678,7 @@ function handleAction(action, id) {
   if (action === "investment") return openModal("investment");
   if (action === "plan") return openModal("plan");
   if (action === "funnel") return openModal("funnel");
+  if (action.startsWith("edit-")) return openModal(action, id);
   if (action === "contribute-goal") return openModal("contribute-goal", id || document.activeElement.dataset.id);
   if (action === "contribute-plan") return openModal("contribute-plan", id || document.activeElement.dataset.id);
   if (action === "toggle-recurring") return toggleRecurring(id);
@@ -706,7 +722,13 @@ function openModal(kind, id) {
     "contribute-goal": { title: "Add to your savings", subtitle: "Every little bit brings you closer.", fields: `<input type="hidden" name="id" value="${id}"><div class="field full"><label for="contribution-amount">How much are you adding?</label><input id="contribution-amount" name="amount" type="number" min="0.01" step="0.01" required placeholder="0.00"></div>` },
     "contribute-plan": { title: "Add to your fund", subtitle: "You’re one step closer to making it happen.", fields: `<input type="hidden" name="id" value="${id}"><div class="field full"><label for="contribution-amount">How much are you adding?</label><input id="contribution-amount" name="amount" type="number" min="0.01" step="0.01" required placeholder="0.00"></div>` }
   };
-  const template = templates[kind];
+  let template = templates[kind];
+  if (kind.startsWith("edit-")) {
+    const editType = kind.slice(5);
+    template = templates[editType];
+    if (!template) return;
+    template = { ...template, title: `Edit ${editType === "funnel" ? "money funnel" : editType === "recurring" ? "monthly item" : editType === "goal" ? "savings goal" : editType === "plan" ? "purchase plan" : editType}`, subtitle: "Update the details and save your changes.", fields: `<input type="hidden" name="id" value="${escapeHtml(id || "")}">` + template.fields };
+  }
   if (!template) return;
   document.body.classList.add("modal-open");
   document.getElementById("modalRoot").innerHTML = `<div class="modal-backdrop" data-close-modal><section class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title"><div class="modal-header"><div><h2 id="modal-title">${template.title}</h2><p>${template.subtitle}</p></div><button type="button" class="close-button" aria-label="Close dialog" data-close-modal>×</button></div><form id="entryForm"><div class="form-grid">${template.fields}</div><div class="modal-actions"><button type="button" class="button secondary" data-close-modal>Cancel</button><button type="submit" class="button">Save ${kind.startsWith("contribute")?"contribution":"details"}</button></div></form></section></div>`;
@@ -714,6 +736,28 @@ function openModal(kind, id) {
   document.getElementById("entryForm").addEventListener("submit", e => { e.preventDefault(); submitForm(kind, new FormData(e.target)); });
   const imageInput = document.getElementById("transaction-image");
   if (imageInput) imageInput.addEventListener("change", event => handleTransactionImage(event.target.files[0]));
+  if (kind.startsWith("edit-")) {
+    const editType = kind.slice(5);
+    const collection = editType === "transaction" ? data.transactions : editType === "goal" ? data.goals : editType === "investment" ? data.investments : editType === "plan" ? data.plans : editType === "funnel" ? data.funnels : data.recurringTransactions;
+    const item = collection.find(entry => entry.id === id);
+    if (!item) { closeModal(); showToast("That item could not be found."); return; }
+    const setValue = (selector, value) => { const field = document.querySelector(selector); if (field) field.value = value ?? ""; };
+    if (editType === "transaction") {
+      pendingTransactionImage = item.image || "";
+      setValue("#entry-name", item.name); setValue("#entry-type", item.type); setValue("#entry-amount", item.amount); setValue("#entry-category", item.category); setValue("#entry-date", item.date);
+      if (item.image) { const preview = document.getElementById("transaction-image-preview"); if (preview) { preview.src = item.image; preview.hidden = false; } }
+    } else if (editType === "recurring") {
+      setValue("#recurring-name", item.name); setValue("#recurring-type", item.type); setValue("#recurring-amount", item.amount); setValue("#recurring-category", item.category); setValue("#recurring-day", item.dayOfMonth); setValue("#recurring-reminder", item.remindDaysBefore);
+    } else if (editType === "goal") {
+      setValue("#goal-name", item.name); setValue("#goal-target", item.target); setValue("#goal-saved", item.saved); setValue("#goal-date", item.due); setValue("#goal-icon", item.icon);
+    } else if (editType === "investment") {
+      setValue("#investment-name", item.name); setValue("#investment-type", item.type); setValue("#investment-date", item.date); setValue("#investment-invested", item.invested); setValue("#investment-value", item.value);
+    } else if (editType === "plan") {
+      setValue("#plan-name", item.name); setValue("#plan-target", item.target); setValue("#plan-saved", item.saved); setValue("#plan-date", item.due); setValue("#plan-icon", item.icon);
+    } else if (editType === "funnel") {
+      setValue("#funnel-name", item.name); setValue("#funnel-category", item.category); setValue("#funnel-limit", item.limit); setValue("#funnel-icon", item.icon);
+    }
+  }
   const first = document.querySelector("#entryForm input:not([type=hidden])");
   if (first) first.focus();
 }
@@ -725,7 +769,39 @@ function submitForm(kind, form) {
   const v = Object.fromEntries(form.entries());
   const amount = Number(v.amount || v.target);
   if (v.name !== undefined && !v.name.trim()) { showToast("Please add a name before saving."); return; }
-  if (!Number.isFinite(amount) || amount <= 0) { showToast("Please enter an amount greater than zero."); return; }
+  if (!kind.startsWith("edit-") && (!Number.isFinite(amount) || amount <= 0)) { showToast("Please enter an amount greater than zero."); return; }
+  if (kind.startsWith("edit-")) {
+    const editType = kind.slice(5);
+    const id = v.id;
+    if (editType === "transaction") {
+      const item = data.transactions.find(entry => entry.id === id);
+      if (item) Object.assign(item, { name: v.name.trim(), type: v.type, amount, date: v.date, category: v.category, image: pendingTransactionImage || item.image || "" });
+    } else if (editType === "recurring") {
+      const item = data.recurringTransactions.find(entry => entry.id === id);
+      const dayOfMonth = Number(v.dayOfMonth);
+      if (!Number.isInteger(dayOfMonth) || dayOfMonth < 1 || dayOfMonth > 31) { showToast("Choose a due day between 1 and 31."); return; }
+      if (item) Object.assign(item, { name: v.name.trim(), type: v.type, amount, category: v.category, dayOfMonth, remindDaysBefore: Number(v.remindDaysBefore) });
+    } else if (editType === "goal") {
+      if (Number(v.saved) > Number(v.target)) { showToast("Your starting savings can’t be more than the goal."); return; }
+      const item = data.goals.find(entry => entry.id === id);
+      if (item) Object.assign(item, { name: v.name.trim(), target: Number(v.target), saved: Number(v.saved || 0), due: v.due, icon: v.icon });
+    } else if (editType === "investment") {
+      if (!Number.isFinite(Number(v.invested)) || Number(v.invested) <= 0 || !Number.isFinite(Number(v.value)) || Number(v.value) < 0) { showToast("Enter valid invested and current values."); return; }
+      const item = data.investments.find(entry => entry.id === id);
+      if (item) Object.assign(item, { name: v.name.trim(), type: v.type, invested: Number(v.invested), value: Number(v.value), date: v.date });
+    } else if (editType === "plan") {
+      if (Number(v.saved) > Number(v.target)) { showToast("Your amount saved can’t be more than the target."); return; }
+      if (v.due < iso(today)) { showToast("Choose a target date in the future."); return; }
+      const item = data.plans.find(entry => entry.id === id);
+      if (item) Object.assign(item, { name: v.name.trim(), target: Number(v.target), saved: Number(v.saved || 0), due: v.due, icon: v.icon });
+    } else if (editType === "funnel") {
+      if (!Number.isFinite(Number(v.limit)) || Number(v.limit) <= 0) { showToast("Enter a monthly funnel amount greater than zero."); return; }
+      const item = data.funnels.find(entry => entry.id === id);
+      if (item) Object.assign(item, { name: v.name.trim(), category: v.category, limit: Number(v.limit), icon: v.icon });
+    }
+    saveData(); closeModal(); render(); showToast("Changes saved.");
+    return;
+  }
   if (kind === "transaction") data.transactions.push({ id: uid(), name: v.name.trim(), type: v.type, amount, date: v.date, category: v.category, note: "", image: pendingTransactionImage || "" });
   if (kind === "recurring") {
     const dayOfMonth = Number(v.dayOfMonth);
@@ -759,7 +835,7 @@ function submitForm(kind, form) {
 }
 function deleteItem(kind, id) {
   if (!confirm("Remove this item? This can’t be undone.")) return;
-  const key = kind === "goal" ? "goals" : kind === "investment" ? "investments" : kind === "recurring" ? "recurringTransactions" : kind === "funnel" ? "funnels" : "plans";
+  const key = kind === "transaction" ? "transactions" : kind === "goal" ? "goals" : kind === "investment" ? "investments" : kind === "recurring" ? "recurringTransactions" : kind === "funnel" ? "funnels" : "plans";
   data[key] = data[key].filter(item=>item.id!==id);
   if (kind === "goal" && data.goalContributions) data.goalContributions = data.goalContributions.filter(c=>c.goalId!==id);
   saveData(); render(); showToast("Item removed.");
