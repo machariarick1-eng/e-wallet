@@ -259,7 +259,7 @@ window.addEventListener("resize", () => {
   const compact = window.matchMedia("(max-width: 1000px)").matches;
   if (compact === compactChartLayout) return;
   compactChartLayout = compact;
-  if (activePage === "income") render();
+  if (activePage === "income" || activePage === "overview") render();
 });
 function setSidebarOpen(open) {
   document.getElementById("sidebar").classList.toggle("open", open);
@@ -447,7 +447,7 @@ function incomeChart() {
   const line = periods.map((period, i) => `${i ? "L" : "M"}${x(i)} ${y(period.income)}`).join(" ");
   const area = `${line} L${x(periods.length-1)} 158 L${x(0)} 158 Z`;
   const gridEnd = compactChartLayout ? 340 : 880;
-  return `<svg class="income-chart" viewBox="0 0 ${width} 190" preserveAspectRatio="none" role="img" aria-label="Money in chart"><defs><linearGradient id="incomeOnlyGradient" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#4d86c8" stop-opacity=".18"/><stop offset="1" stop-color="#4d86c8" stop-opacity="0"/></linearGradient></defs>
+  return `<svg class="income-chart" viewBox="0 0 ${width} 190" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Money in chart"><defs><linearGradient id="incomeOnlyGradient" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#4d86c8" stop-opacity=".18"/><stop offset="1" stop-color="#4d86c8" stop-opacity="0"/></linearGradient></defs>
     ${[30,72,114,156].map(v=>`<line class="gridline" x1="45" y1="${v}" x2="${gridEnd}" y2="${v}"/>`).join("")}
     <path class="income-chart-area" d="${area}"/><path class="income-chart-line" d="${line}"/>
     ${periods.map((period,i)=>`<circle class="income-chart-point" cx="${x(i)}" cy="${y(period.income)}" r="3.2"/><text x="${x(i)}" y="178" text-anchor="middle">${escapeHtml(period.label)}</text>`).join("")}
@@ -497,7 +497,7 @@ function cashflowChart() {
   const line = key => periods.map((m, i) => `${i ? "L" : "M"}${x(i)} ${y(m.values[key])}`).join(" ");
   const area = key => `${line(key)} L${x(periods.length-1)} 158 L${x(0)} 158 Z`;
   const gridEnd = compact ? 340 : 880;
-  return `<svg class="cashflow-chart" viewBox="0 0 ${chartWidth} 190" preserveAspectRatio="none" role="img" aria-label="Income and spending chart"><defs><linearGradient id="incomeGradient" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#4d86c8" stop-opacity=".14"/><stop offset="1" stop-color="#4d86c8" stop-opacity="0"/></linearGradient><linearGradient id="expenseGradient" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#ee9b7d" stop-opacity=".13"/><stop offset="1" stop-color="#ee9b7d" stop-opacity="0"/></linearGradient></defs>
+  return `<svg class="cashflow-chart" viewBox="0 0 ${chartWidth} 190" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Income and spending chart"><defs><linearGradient id="incomeGradient" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#4d86c8" stop-opacity=".14"/><stop offset="1" stop-color="#4d86c8" stop-opacity="0"/></linearGradient><linearGradient id="expenseGradient" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#ee9b7d" stop-opacity=".13"/><stop offset="1" stop-color="#ee9b7d" stop-opacity="0"/></linearGradient></defs>
     ${[30,72,114,156].map(v=>`<line class="gridline" x1="45" y1="${v}" x2="${gridEnd}" y2="${v}"/>`).join("")}
     <path class="income-fill" d="${area("income")}"/><path class="expense-fill" d="${area("expense")}"/><path class="income-line" d="${line("income")}"/><path class="expense-line" d="${line("expense")}"/>
     ${periods.map((m,i)=>`<circle class="point blue" cx="${x(i)}" cy="${y(m.values.income)}" r="3.2"/><circle class="point orange" cx="${x(i)}" cy="${y(m.values.expense)}" r="3.2"/><text x="${x(i)}" y="178" text-anchor="middle">${escapeHtml(m.label)}</text>`).join("")}

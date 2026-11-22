@@ -118,7 +118,7 @@ h1 { margin: 0; font-size: 18.74px; line-height: 1.3; letter-spacing: -.55px; fo
 .legend-item { display: flex; align-items: center; gap: 5px; }
 .legend-dot { width: 6px; height: 6px; border-radius: 50%; background: #4c87ce; }
 .legend-dot.orange { background: #ef9b7c; }
-.cashflow-chart { width: 100%; height: 180px; margin-top: 12px; overflow: visible; }
+.cashflow-chart { display: block; width: 100%; height: 180px; margin-top: 12px; overflow: visible; shape-rendering: geometricPrecision; }
 .cashflow-chart text { font-family: inherit; fill: #a2adba; font-size: 10.71px; }
 .cashflow-chart .gridline { stroke: #edf0f3; stroke-width: 1; }
 .cashflow-chart .income-line { stroke: #4d86c8; stroke-width: 2.5; fill: none; stroke-linecap: round; stroke-linejoin: round; }
@@ -676,7 +676,7 @@ html[data-theme="dark"] .planner-equation { background: rgba(15, 20, 26, .34); b
 .income-source-track { height: 7px; overflow: hidden; border-radius: 99px; background: var(--surface-border); }
 .income-source-track span { display: block; height: 100%; border-radius: inherit; background: var(--blue); }
 .income-source-row small { color: var(--muted); font-size: 8.03px; }
-.income-chart { width: 100%; height: 190px; margin-top: 12px; overflow: visible; }
+.income-chart { display: block; width: 100%; height: 190px; margin-top: 12px; overflow: visible; shape-rendering: geometricPrecision; }
 .income-chart text { fill: var(--muted); font-size: 9.82px; }
 .income-chart-area { fill: url(#incomeOnlyGradient); }
 .income-chart-line { fill: none; stroke: #4d86c8; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
